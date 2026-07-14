@@ -1,17 +1,18 @@
 package org.firstinspires.ftc.teamcode.drive.pedroPathing;
 
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.drivetrain.Drivetrain;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
-import com.pedropathing.ftc.drivetrains.Mecanum;
-import com.pedropathing.ftc.drivetrains.MecanumConstants;
+import com.pedropathing.ftc.drivetrains.*;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.drive.DriveBaseMotorConfig;
 
 public class Constants {
     public static double DEFAULT_MAX_POWER = 1.0;
@@ -38,40 +39,47 @@ public class Constants {
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
-    public static MecanumConstants mecanumConstants = new MecanumConstants()
-            .leftFrontMotorDirection(DcMotorEx.Direction.REVERSE)
-            .rightFrontMotorDirection(DcMotorEx.Direction.FORWARD)
-            .leftRearMotorDirection(DcMotorEx.Direction.REVERSE)
-            .rightRearMotorDirection(DcMotorEx.Direction.REVERSE)
-            .leftFrontMotorName("LFront")
-            .rightFrontMotorName("RFront")
-            .leftRearMotorName("LRear")
-            .rightRearMotorName("RRear")
-            .maxPower(DEFAULT_MAX_POWER);
+    public static SwerveConstants swerveConstants = new SwerveConstants()
+            .maxPower(1);
 
-    public static void setMecanumMaxPower(double maxPower) {
-        double clamped = Math.max(0.0, Math.min(1.0, maxPower));
-        mecanumConstants.maxPower(clamped);
+    public static DifferentialPod leftPod(HardwareMap hwm){
+        return new DifferentialPod(hwm,
+                "leftPodLeftMotor", "leftPodRightMotor",
+                new PIDFCoefficients(0, 0, 0, 0),
+                DcMotorSimple.Direction.FORWARD,
+                DcMotorSimple.Direction.REVERSE,
+                0,
+                new Pose(0, 0),
+                500
+                );
     }
+
+    public static DifferentialPod rightPod(HardwareMap hwm){
+        return new DifferentialPod(hwm,
+                "rightPodLeftMotor", "rightPodRightMotor",
+                new PIDFCoefficients(0, 0, 0, 0),
+                DcMotorSimple.Direction.FORWARD,
+                DcMotorSimple.Direction.REVERSE,
+                0,
+                new Pose(0, 0),
+                500
+        );
+    }
+
+    public static Drivetrain createDriveTrain(HardwareMap hardwareMap){
+        return new SwerveBuilder(hardwareMap, swerveConstants)
+                .addPod(leftPod(hardwareMap))
+                .addPod(rightPod(hardwareMap))
+                .build();
+    }
+
 
     public static Follower createFollower(HardwareMap hardwareMap) {
         PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, createPinpointConstants());
         return new Follower(
                 followerConstants,
                 localizer,
-                new Mecanum(hardwareMap, mecanumConstants)
-        );
-    }
-
-    public static Follower createConfiguredFollower(HardwareMap hardwareMap, DriveBaseMotorConfig config) {
-        config.configAndFetchLeftFront(hardwareMap);
-        config.configAndFetchLeftRear(hardwareMap);
-        config.configAndFetchRightFront(hardwareMap);
-        config.configAndFetchRightRear(hardwareMap);
-        return new Follower(
-                followerConstants,
-                new PinpointLocalizer(hardwareMap, createPinpointConstants()),
-                new Mecanum(hardwareMap, mecanumConstants)
+                createDriveTrain(hardwareMap)
         );
     }
 }
