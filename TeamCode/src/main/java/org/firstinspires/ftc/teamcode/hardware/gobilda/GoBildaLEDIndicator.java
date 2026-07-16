@@ -1,6 +1,9 @@
-package org.firstinspires.ftc.teamcode.hardware;
+package org.firstinspires.ftc.teamcode.hardware.gobilda;
 
-public class SmartLEDIndicator extends Device {
+import org.firstinspires.ftc.teamcode.hardware.Device;
+import org.firstinspires.ftc.teamcode.hardware.SmartServo;
+
+public class GoBildaLEDIndicator extends Device {
     public enum IndicatorColor {
         OFF(OFF_POSITION),
         RED(RED_POSITION),
@@ -46,7 +49,7 @@ public class SmartLEDIndicator extends Device {
 
     private final SmartServo servo;
 
-    SmartLEDIndicator(SmartServo servo) {
+    public GoBildaLEDIndicator(SmartServo servo) {
         super(servo.getConfigName());
         this.servo = servo;
     }

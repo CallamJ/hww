@@ -4,6 +4,8 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.*;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.teamcode.hardware.gobilda.GoBildaLEDIndicator;
+import org.firstinspires.ftc.teamcode.hardware.rev.RevPotentiometer;
 import org.firstinspires.ftc.teamcode.utilities.Pose;
 
 import java.util.ArrayList;
@@ -117,14 +119,14 @@ public class Hardware {
         return registerCachedDevice(SmartServo.class, servo);
     }
 
-    public SmartLEDIndicator getLEDIndicator(String name) {
-        Optional<SmartLEDIndicator> indicatorOptional = getDevice(SmartLEDIndicator.class, name);
+    public GoBildaLEDIndicator getLEDIndicator(String name) {
+        Optional<GoBildaLEDIndicator> indicatorOptional = getDevice(GoBildaLEDIndicator.class, name);
         if (indicatorOptional.isPresent()) {
             return indicatorOptional.get();
         }
 
-        SmartLEDIndicator indicator = new SmartLEDIndicator(getServo(name));
-        return registerDevice(SmartLEDIndicator.class, indicator);
+        GoBildaLEDIndicator indicator = new GoBildaLEDIndicator(getServo(name));
+        return registerDevice(GoBildaLEDIndicator.class, indicator);
     }
 
     public SmartTouchSensor getTouchSensor(String name){
@@ -147,32 +149,32 @@ public class Hardware {
         return registerDevice(SmartAnalogInput.class, input);
     }
 
-    public SmartPotentiometer getPotentiometer(String name, double maxAngle, double maxVoltage){
-        Optional<SmartPotentiometer> potentiometerOptional = getDevice(SmartPotentiometer.class, name);
+    public RevPotentiometer getPotentiometer(String name, double maxAngle, double maxVoltage){
+        Optional<RevPotentiometer> potentiometerOptional = getDevice(RevPotentiometer.class, name);
         if (potentiometerOptional.isPresent()){
-            SmartPotentiometer potentiometer = potentiometerOptional.get();
+            RevPotentiometer potentiometer = potentiometerOptional.get();
             potentiometer.updateCache();
             return potentiometer;
         }
 
         SmartAnalogInput input = getAnalogInput(name);
-        SmartPotentiometer potentiometer = new SmartPotentiometer(input, name, maxAngle, maxVoltage);
-        registerCachedDevice(SmartPotentiometer.class, potentiometer);
+        RevPotentiometer potentiometer = new RevPotentiometer(input, name, maxAngle, maxVoltage);
+        registerCachedDevice(RevPotentiometer.class, potentiometer);
         potentiometer.updateCache();
         return potentiometer;
     }
 
-    public SmartPotentiometer getPotentiometer(String name, double maxAngle, double maxVoltage, double offset){
-        Optional<SmartPotentiometer> potentiometerOptional = getDevice(SmartPotentiometer.class, name);
+    public RevPotentiometer getPotentiometer(String name, double maxAngle, double maxVoltage, double offset){
+        Optional<RevPotentiometer> potentiometerOptional = getDevice(RevPotentiometer.class, name);
         if (potentiometerOptional.isPresent()){
-            SmartPotentiometer potentiometer = potentiometerOptional.get();
+            RevPotentiometer potentiometer = potentiometerOptional.get();
             potentiometer.updateCache();
             return potentiometer;
         }
 
         SmartAnalogInput input = getAnalogInput(name);
-        SmartPotentiometer potentiometer = new SmartPotentiometer(input, name, maxAngle, maxVoltage, offset);
-        registerCachedDevice(SmartPotentiometer.class, potentiometer);
+        RevPotentiometer potentiometer = new RevPotentiometer(input, name, maxAngle, maxVoltage, offset);
+        registerCachedDevice(RevPotentiometer.class, potentiometer);
         potentiometer.updateCache();
         return potentiometer;
     }

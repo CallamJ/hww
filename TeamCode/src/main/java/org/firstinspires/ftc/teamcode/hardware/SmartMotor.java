@@ -28,18 +28,6 @@ public class SmartMotor extends Device implements DcMotorEx, Caching, WrappedDev
         return motor;
     }
 
-    public DcMotor getMotor(){
-        return getRaw();
-    }
-
-    public DcMotorEx getMotorEx(){
-        return getRaw();
-    }
-
-    public DcMotorSimple getMotorSimple(){
-        return getRaw();
-    }
-
     public SmartEncoder getEncoder(){
         return encoder;
     }
