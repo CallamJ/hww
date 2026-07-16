@@ -86,7 +86,7 @@ public class DifferentialPod implements SwervePod {
      */
     @Override
     public double getAngle() {
-        return getAngleAfterOffsetRad();
+        return getRawAngleRad() - angleOffsetRad;
     }
 
     /**
@@ -130,7 +130,7 @@ public class DifferentialPod implements SwervePod {
      */
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
-        double actualRad = MathFunctions.normalizeAngle(getAngleAfterOffsetRad());
+        double actualRad = MathFunctions.normalizeAngle(getAngle());
 
         targetAngleRad = MathFunctions.normalizeAngle(targetAngleRad);
 
@@ -193,14 +193,6 @@ public class DifferentialPod implements SwervePod {
         }
     }
 
-    /**
-     * Returns the current pod heading after applying the configured offset, in radians.
-     *
-     * @return heading in radians
-     */
-    public double getAngleAfterOffsetRad() {
-        return getRawAngleRad() - angleOffsetRad;
-    }
 
     /**
      * Returns the raw encoder angle in radians, in [0, 2pi].
@@ -230,18 +222,12 @@ public class DifferentialPod implements SwervePod {
         this.motorCachingThreshold = motorCachingThreshold;
     }
 
-    /**
-     * Returns the signed shortest rotation from start to end.
-     * Positive is counterclockwise; negative is clockwise.
-     */
-    public static double getSignedAngleDifference(double start, double end) {
-        double difference = MathFunctions.normalizeAngle(end - start);
+    public double getFeedForwardDeadzoneDegrees() {
+        return feedForwardDeadzoneDegrees;
+    }
 
-        if (difference > Math.PI) {
-            difference -= 2.0 * Math.PI;
-        }
-
-        return difference;
+    public void setFeedForwardDeadzoneDegrees(double feedForwardDeadzoneDegrees) {
+        this.feedForwardDeadzoneDegrees = feedForwardDeadzoneDegrees;
     }
 
     /**
@@ -250,12 +236,26 @@ public class DifferentialPod implements SwervePod {
     @Override
     public String debugString() {
         double rawAngleRad = getRawAngleRad();
-        double offsetAngleRad = getAngleAfterOffsetRad();
+        double offsetAngleRad = getAngle();
         return "diff-pod {" + "\ncurrent raw angle (rad/deg) = " + rawAngleRad + " / " + Math.toDegrees(rawAngleRad)
                 + "\ncurrent angle after offset (rad/deg) = " + offsetAngleRad + " / " + Math.toDegrees(offsetAngleRad)
                 + "\nleft Power = " + leftDriveMotor.getPower()
                 + "\ndrive Power = " + rightDriveMotor.getPower()
                 + "\n}";
+    }
+
+    /**
+     * Returns the signed shortest rotation from start to end.
+     * Positive is counterclockwise; negative is clockwise.
+     */
+    private double getSignedAngleDifference(double start, double end) {
+        double difference = MathFunctions.normalizeAngle(end - start);
+
+        if (difference > Math.PI) {
+            difference -= 2.0 * Math.PI;
+        }
+
+        return difference;
     }
 
     private void applyZPB(DcMotor.ZeroPowerBehavior behavior){
