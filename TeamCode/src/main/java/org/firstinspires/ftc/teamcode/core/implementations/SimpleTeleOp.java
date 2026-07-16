@@ -21,16 +21,21 @@ public class SimpleTeleOp extends TeleOpCore {
     }
 
     @Override
+    protected void onRun() {
+        driveBase.getFollower().startTeleOpDrive();
+    }
+
+    @Override
     protected void checkGamepads(SmartGamepad gamepad1, SmartGamepad gamepad2) {
         //noinspection DuplicatedCode
 
         if (driveBase != null) {
-            driveBase.getFollower().setTeleOpDrive(gamepad1.leftStickX, gamepad1.leftStickY, gamepad1.rightStickX);
+            driveBase.getFollower().setTeleOpDrive(-gamepad1.leftStickY, gamepad1.leftStickX, gamepad1.rightStickX);
         }
     }
 
     @Override
     protected void onTick() {
-
+        driveBase.getFollower().update();
     }
 }

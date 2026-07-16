@@ -7,10 +7,22 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
  * This class provides methods for converting between custom `Direction` values and the corresponding `Encoder.Direction` values.
  */
 public enum Direction {
-    FORWARD, REVERSE;
+
+
+    FORWARD(1), REVERSE(-1);
+
+    private int signum;
+
+    Direction(int signum){
+        this.signum = signum;
+    }
 
 
     public DcMotorSimple.Direction toMotorDirection(){
         return this == FORWARD ? DcMotorSimple.Direction.FORWARD : DcMotorSimple.Direction.REVERSE;
+    }
+
+    public int toSignum(){
+        return signum;
     }
 }

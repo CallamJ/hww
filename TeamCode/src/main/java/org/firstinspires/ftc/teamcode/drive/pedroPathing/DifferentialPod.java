@@ -6,6 +6,7 @@ import com.pedropathing.ftc.drivetrains.SwervePod;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
 import com.qualcomm.robotcore.hardware.*;
+import org.firstinspires.ftc.teamcode.utilities.Direction;
 
 /**
  * DifferentialPod is a hardware-backed implementation of the core `SwervePod` interface. It owns the
@@ -17,24 +18,28 @@ import com.qualcomm.robotcore.hardware.*;
  * @author Callam Jomaa
  */
 public class DifferentialPod implements SwervePod {
+
+    //if encoder is reversed, ccw (top down) is positive, if unreversed than cw is positive
     private final DcMotorEx leftDriveMotor, rightDriveMotor;
 
     private final PIDFController turnPID;
     private final Pose offset;
 
     // Angle offset in radians applied to raw encoder angle
-    private final double angleOffsetRad;
+    private double angleOffsetRad;
 
     private double motorCachingThreshold = 0.01;
 
-    private double lastRightPower = 0;
-    private double lastLeftPower = 0;
+    private double appliedRightPower = 0;
+    private double appliedLeftPower = 0;
 
     private final double ticksPerTurnRadians;
 
-    private DcMotor.ZeroPowerBehavior motorZPB = DcMotor.ZeroPowerBehavior.FLOAT;
+    private double feedForwardDeadzoneDegrees = 2;
 
-    private boolean lastLeftZPBWasFloat = false, lastRightZPBWasFloat = false;
+    private final Direction leftEncoderDirection, rightEncoderDirection;
+
+    private DcMotor.ZeroPowerBehavior restingZPB = DcMotor.ZeroPowerBehavior.FLOAT, appliedZPB = DcMotor.ZeroPowerBehavior.FLOAT;
 
     /**
      * @param turnPIDFCoefficients PIDF coefficients for servo control
@@ -44,6 +49,7 @@ public class DifferentialPod implements SwervePod {
      */
     public DifferentialPod(HardwareMap hardwareMap, String motor1Name, String motor2Name, PIDFCoefficients turnPIDFCoefficients,
                            DcMotorSimple.Direction leftMotorDirection, DcMotorSimple.Direction rightMotorDirection,
+                           Direction leftEncoderDirection, Direction rightEncoderDirection,
                            double angleOffsetRad, Pose podOffset, double ticksPerTurnRadians) {
 
         this.leftDriveMotor = hardwareMap.get(DcMotorEx.class, motor1Name);
@@ -51,6 +57,8 @@ public class DifferentialPod implements SwervePod {
 
         this.turnPID = new PIDFController(turnPIDFCoefficients);
         this.angleOffsetRad = angleOffsetRad;
+        this.leftEncoderDirection = leftEncoderDirection;
+        this.rightEncoderDirection = rightEncoderDirection;
 
         setToFloat();
 
@@ -86,9 +94,8 @@ public class DifferentialPod implements SwervePod {
      */
     @Override
     public void setToFloat() {
-        leftDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rightDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        motorZPB = DcMotor.ZeroPowerBehavior.FLOAT;
+        restingZPB = DcMotor.ZeroPowerBehavior.FLOAT;
+        applyZPB(DcMotor.ZeroPowerBehavior.FLOAT);
     }
 
     /**
@@ -96,9 +103,11 @@ public class DifferentialPod implements SwervePod {
      */
     @Override
     public void setToBreak() {
-        leftDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motorZPB = DcMotor.ZeroPowerBehavior.BRAKE;
+        restingZPB = DcMotor.ZeroPowerBehavior.BRAKE;
+
+        if(appliedLeftPower == 0 && appliedRightPower == 0) {
+            applyZPB(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
     }
 
     /**
@@ -121,71 +130,66 @@ public class DifferentialPod implements SwervePod {
      */
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
-        // Convert hardware angle to radians and normalize
-        double actualRad = getAngleAfterOffsetRad();
-        actualRad = MathFunctions.normalizeAngle(actualRad);
+        double actualRad = MathFunctions.normalizeAngle(getAngleAfterOffsetRad());
 
-        //if encoder is reversed, ccw (top down) is positive, if unreversed than cw is positive
-        double desiredRad = targetAngleRad;
-        // desiredRad += Math.PI / 2.0; - removed because this is just an input offset, so theoretically it shouldnt be needed rather than just tuning rotation offset???
-        desiredRad = MathFunctions.normalizeAngle(desiredRad);
+        targetAngleRad = MathFunctions.normalizeAngle(targetAngleRad);
 
 
-        double mag = MathFunctions.getSmallestAngleDifference(actualRad, desiredRad);
+        double errorRad = getSignedAngleDifference(actualRad, targetAngleRad);
+        double mag = Math.abs(errorRad);
 
-        // Minimize rotation: flip + invert drive if > 90°
-        if (mag > (Math.PI / 2.0)) {
-            // add 180 degrees (pi radians)
-            desiredRad = MathFunctions.normalizeAngle(desiredRad + Math.PI);
+        // if target angle is farther than 90 degrees we can instead turn 180 - target the other direction and reverse the drive power
+        if (mag > Math.PI / 2.0) {
+            targetAngleRad = MathFunctions.normalizeAngle(targetAngleRad + Math.PI);
             drivePower = -drivePower;
+
+            errorRad = getSignedAngleDifference(actualRad, targetAngleRad);
         }
 
-        // Shortest-path error in radians (signed)
-        mag = MathFunctions.getSmallestAngleDifference(actualRad, desiredRad);
-        double dir = MathFunctions.getTurnDirection(actualRad, desiredRad);
-        double errorRad = (mag == Math.PI) ? -Math.PI : mag * dir;
 
-        // PID uses radians (tune PIDF for radian error)
-
-        // Setpoint close to current so PID follows shortest path
-        double setpointRad = actualRad + errorRad;
-
-        if (Math.abs(errorRad) < (2.0 * Math.PI / 180.0)) {
+        if (mag < (feedForwardDeadzoneDegrees * Math.PI / 180.0)) {
             turnPID.updateFeedForwardInput(0);
         } else {
-            turnPID.updateFeedForwardInput(MathFunctions.getTurnDirection(actualRad, desiredRad));
+            turnPID.updateFeedForwardInput(Math.signum(errorRad));
         }
+        turnPID.updateError(errorRad);
 
-        turnPID.updateError(setpointRad - actualRad);
         double turnPower = ignoreAngleChanges ? 0 : MathFunctions.clamp(turnPID.run(), -1.0, 1.0);
 
-        //get the denominator necessary to scale powers down to [-1, 1]
+        // get the denominator necessary to scale powers down to [-1, 1]
         double den = Math.max(Math.abs(drivePower) + Math.abs(turnPower), 1);
 
-        double powLeft = (drivePower + turnPower) / den;
+        double powLeft = (-drivePower + turnPower) / den;
         double powRight = (drivePower - turnPower) / den;
 
-        // if we are in brake-at-rest mode, and we have any drive signals, we don't want BRAKE zero power behavior to fight movement and cause incorrect function.
-        if (Math.abs(powLeft - lastLeftPower) > motorCachingThreshold || (powLeft == 0 && lastLeftPower != 0)) {
-            lastLeftPower = powLeft; // only update last power when it is actually applied, otherwise incremental changes under 0.01 would be applied to lastPower but not the motor
-            leftDriveMotor.setPower(powLeft);
-            if (motorZPB == DcMotor.ZeroPowerBehavior.BRAKE && powLeft == 0 && !lastLeftZPBWasFloat) {
-                leftDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                lastLeftZPBWasFloat = true;
-            } else {
-                lastLeftZPBWasFloat = false;
+
+        // if we are trying to move, we don't want BRAKE zero power behavior to fight movement on one motor and not the other and cause incorrect function.
+        if(powLeft != 0 || powRight != 0){
+            applyZPB(DcMotor.ZeroPowerBehavior.FLOAT);
+        } else {
+            applyZPB(restingZPB);
+
+            if (appliedLeftPower != 0) {
+                leftDriveMotor.setPower(0);
+                appliedLeftPower = 0;
             }
+
+            if (appliedRightPower != 0) {
+                rightDriveMotor.setPower(0);
+                appliedRightPower = 0;
+            }
+
+            return;
         }
 
-        if (Math.abs(powRight - lastRightPower) > motorCachingThreshold || (powRight == 0 && lastRightPower != 0)) {
-            lastRightPower = powRight; // only update last power when it is actually applied, otherwise incremental changes under 0.01 would be applied to lastPower but not the motor
+        // motor caching threshold is the amount the output power must change to be worth applying to the motor
+        if (Math.abs(powLeft - appliedLeftPower) > motorCachingThreshold || (powLeft == 0 && appliedLeftPower != 0)) {
+            appliedLeftPower = powLeft; // only update last power when it is actually applied, otherwise incremental changes under 0.01 would be applied to lastPower but not the motor
+            leftDriveMotor.setPower(powLeft);
+        }
+        if (Math.abs(powRight - appliedRightPower) > motorCachingThreshold || (powRight == 0 && appliedRightPower != 0)) {
+            appliedRightPower = powRight; // only update last power when it is actually applied, otherwise incremental changes under 0.01 would be applied to lastPower but not the motor
             rightDriveMotor.setPower(powRight);
-            if (motorZPB == DcMotor.ZeroPowerBehavior.BRAKE && powRight == 0 && !lastRightZPBWasFloat) {
-                rightDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                lastRightZPBWasFloat = true;
-            } else {
-                lastRightZPBWasFloat = false;
-            }
         }
     }
 
@@ -204,18 +208,17 @@ public class DifferentialPod implements SwervePod {
      * @return raw encoder angle in radians
      */
     public double getRawAngleRad() {
-        double error = leftDriveMotor.getCurrentPosition() - rightDriveMotor.getCurrentPosition();
-        return MathFunctions.normalizeAngle(error / ticksPerTurnRadians);
+        double difference = leftDriveMotor.getCurrentPosition() * leftEncoderDirection.toSignum()
+                - rightDriveMotor.getCurrentPosition() * rightEncoderDirection.toSignum();
+        return MathFunctions.normalizeAngle(difference / ticksPerTurnRadians);
     }
 
-    /**
-     * Returns the normalized raw angle after offset, in radians.
-     *
-     * @return normalized angle in radians
-     */
-    public double getOffsetAngleRad() {
-        double rad = getRawAngleRad() - angleOffsetRad;
-        return MathFunctions.normalizeAngle(rad);
+    public double getAngleOffsetRad() {
+        return angleOffsetRad;
+    }
+
+    public void setAngleOffsetRad(double angleOffsetRad) {
+        this.angleOffsetRad = angleOffsetRad;
     }
 
     /**
@@ -225,6 +228,20 @@ public class DifferentialPod implements SwervePod {
      */
     public void setMotorCachingThreshold(double motorCachingThreshold) {
         this.motorCachingThreshold = motorCachingThreshold;
+    }
+
+    /**
+     * Returns the signed shortest rotation from start to end.
+     * Positive is counterclockwise; negative is clockwise.
+     */
+    public static double getSignedAngleDifference(double start, double end) {
+        double difference = MathFunctions.normalizeAngle(end - start);
+
+        if (difference > Math.PI) {
+            difference -= 2.0 * Math.PI;
+        }
+
+        return difference;
     }
 
     /**
@@ -239,5 +256,13 @@ public class DifferentialPod implements SwervePod {
                 + "\nleft Power = " + leftDriveMotor.getPower()
                 + "\ndrive Power = " + rightDriveMotor.getPower()
                 + "\n}";
+    }
+
+    private void applyZPB(DcMotor.ZeroPowerBehavior behavior){
+        if(appliedZPB == behavior) return;
+
+        leftDriveMotor.setZeroPowerBehavior(behavior);
+        rightDriveMotor.setZeroPowerBehavior(behavior);
+        appliedZPB = behavior;
     }
 }

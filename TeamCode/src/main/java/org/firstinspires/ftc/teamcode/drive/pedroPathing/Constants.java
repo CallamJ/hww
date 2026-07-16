@@ -13,6 +13,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.utilities.Direction;
 
 public class Constants {
     public static double DEFAULT_MAX_POWER = 1.0;
@@ -48,10 +49,12 @@ public class Constants {
                 new PIDFCoefficients(0, 0, 0, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
+                Direction.FORWARD,
+                Direction.REVERSE,
                 0,
                 new Pose(0, 0),
                 500
-                );
+        );
     }
 
     public static DifferentialPod rightPod(HardwareMap hwm){
@@ -60,6 +63,8 @@ public class Constants {
                 new PIDFCoefficients(0, 0, 0, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
+                Direction.FORWARD,
+                Direction.REVERSE,
                 0,
                 new Pose(0, 0),
                 500
