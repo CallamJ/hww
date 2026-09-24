@@ -1,15 +1,11 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
-import com.bylazar.configurables.annotations.Configurable;
-
 /**
- * The only intended Control Hub Configurables surface.
+ * Match-facing tuning values kept together for easy code-side adjustment.
  *
- * Keep this class scalar-only. Configurables recursively serializes public
- * static fields from annotated classes during Sloth load, so object, enum,
- * array, collection, and runtime hardware fields belong elsewhere.
+ * These values are ordinary Java fields and are not exposed to a runtime
+ * configuration UI.
  */
-@Configurable
 public final class LiveMatchTuning {
     private LiveMatchTuning() {}
 

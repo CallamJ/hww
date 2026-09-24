@@ -46,7 +46,7 @@
   The autonomous framework. Most autos inherit from this and build plans with `StepSpec`.
 - `core/implementations/SimpleTeleOp.java`
   Reduced teleop used for simpler mechanism testing and fallback behavior.
-- `core/implementations/*Diagnostics*`, `*Tuning*`, `ServoTester`, `MotorIdentifier`, `PotentiometerTest`
+- `core/implementations/*Diagnostics*`, `ServoTester`, `MotorIdentifier`, `PotentiometerTest`
   Utility opmodes used for calibration, diagnostics, and hardware bring-up.
 - `core/OpModeCore.java`
   The base lifecycle. It owns `Hardware`, `PersistentStorage`, telemetry setup, and the per-loop cache invalidation flow.
@@ -60,7 +60,7 @@
 - `TeleOpCore` snapshots initial gamepad state through `OpModeCore`'s framework pre-init plumbing, not through subclass `super.onInitialize()` calls. TeleOp consumers should put robot-specific setup in `onInitialize()` without chaining to the parent.
 - `Hardware` is now per-opmode, not global static state. Do not reintroduce the old `Hardware.init(...)` mental model.
 - Several opmodes keep subsystem references in static fields and explicitly reset them on init. That is intentional protection against stale state across FTC opmode reruns.
-- `utilities/LiveMatchTuning.java` is the only intended `@Configurable` surface. Keep it scalar-only and match-facing; do not add `@Configurable` back to mechanisms, subsystems, autos, or classes with complex object fields unless the Sloth patch-application cost has been reconsidered.
+- `utilities/LiveMatchTuning.java` groups match-facing values for code-side tuning. There is no runtime configurable UI integration.
 
 ## Active Control Surfaces
 
@@ -71,7 +71,7 @@
 - `drive/pedroPathing/Constants.java`
   Shared follower and drivetrain tuning that affects both teleop follower-assisted behavior and autonomous.
 - `utilities/LiveMatchTuning.java`
-  Runtime Control Hub tuning for current match-facing scalar values. Autonomous path/plan constants are code-patched rather than exposed as live configurables.
+  Code-side source for current match-facing scalar values. Autonomous path/plan constants are also code-patched.
 
 ## State Machines And Coordinators
 
@@ -176,9 +176,8 @@ A separate framework convention worth preserving even though no historical fix a
 - `targetSdk` is intentionally pinned to 28 with `//noinspection ExpiredTargetSdkVersion` in `build.common.gradle`. Do not "fix" it — it is a deliberate FTC SDK requirement.
 - `versionCode` and `versionName` are scraped at configure time from `FtcRobotController/src/main/AndroidManifest.xml` by a regex in `build.common.gradle`. Bump version fields there, not in TeamCode.
 - FTC SDK pinned to `org.firstinspires.ftc:* @ 11.1.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
-- Pedro Pathing pinned to `com.pedropathing:ftc:2.0.4` + `com.pedropathing:telemetry:1.0.0`. The Pedro 1.x → 2.x API shift matters when reading older code or external examples.
-- `@Configurable` runtime tuning surface comes from Panels: `com.bylazar:fullpanels:1.0.12`.
-- Non-default Maven sources: `https://maven.brott.dev/` (Road Runner) and `https://mymaven.bylazar.com/releases` (Pedro + Panels). Both are required for a clean build.
+- Pedro Pathing pinned to `com.pedropathing:revhub:3.0.1`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
+- Non-default Maven source: `https://maven.brott.dev/` (Road Runner). Pedro 3.x artifacts publish to Maven Central.
 - TeamCode-only Java deps worth noticing while reading utilities/persistence code: `commons-math3:3.6.1`, `jackson-databind:2.13.4.2`.
 
 ## Validation Guidance

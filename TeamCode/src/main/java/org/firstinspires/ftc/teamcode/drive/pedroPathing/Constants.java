@@ -1,90 +1,99 @@
 package org.firstinspires.ftc.teamcode.drive.pedroPathing;
 
-import com.pedropathing.control.PIDFCoefficients;
-import com.pedropathing.drivetrain.Drivetrain;
+import com.pedropathing.algorithm.Foresight;
+import com.pedropathing.algorithm.ForesightConfig;
+import com.pedropathing.controllers.Controller;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.follower.FollowerConstants;
-import com.pedropathing.ftc.drivetrains.*;
-import com.pedropathing.ftc.localization.constants.PinpointConstants;
-import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathConstraints;
+import com.pedropathing.math.Matrix;
+import com.pedropathing.math.Vector2D;
+import com.pedropathing.revhub.drivetrains.Swerve;
+import com.pedropathing.revhub.drivetrains.SwerveConfig;
+import com.pedropathing.revhub.localizers.PinpointConfig;
+import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.utilities.Direction;
 
-public class Constants {
-    public static double DEFAULT_MAX_POWER = 1.0;
-
-    public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(13.35);
+public final class Constants {
+    private Constants() { }
 
     public static double STRAFE_POD_X_INCHES = 0.9;
     public static double FORWARD_POD_Y_INCHES = -3.25;
-    public static GoBildaPinpointDriver.EncoderDirection FORWARD_ENCODER_DIRECTION = GoBildaPinpointDriver.EncoderDirection.FORWARD;
-    public static GoBildaPinpointDriver.EncoderDirection STRAFE_ENCODER_DIRECTION = GoBildaPinpointDriver.EncoderDirection.REVERSED;
+    public static GoBildaPinpointDriver.EncoderDirection FORWARD_ENCODER_DIRECTION =
+            GoBildaPinpointDriver.EncoderDirection.FORWARD;
+    public static GoBildaPinpointDriver.EncoderDirection STRAFE_ENCODER_DIRECTION =
+            GoBildaPinpointDriver.EncoderDirection.REVERSED;
 
-
-    public static PinpointConstants createPinpointConstants() {
-        return new PinpointConstants()
-                .hardwareMapName("pinpoint")
-                .distanceUnit(DistanceUnit.INCH)
-                .strafePodX(STRAFE_POD_X_INCHES)
-                .forwardPodY(FORWARD_POD_Y_INCHES)
-                .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-                .forwardEncoderDirection(FORWARD_ENCODER_DIRECTION)
-                .strafeEncoderDirection(STRAFE_ENCODER_DIRECTION);
+    public static PinpointConfig createPinpointConfig() {
+        return new PinpointConfig(config -> {
+            config.name.set("pinpoint");
+            config.xPodOffset.set(STRAFE_POD_X_INCHES);
+            config.yPodOffset.set(FORWARD_POD_Y_INCHES);
+            config.xPodDirection.set(STRAFE_ENCODER_DIRECTION);
+            config.yPodDirection.set(FORWARD_ENCODER_DIRECTION);
+            config.offsetUnits.set(DistanceUnit.INCH);
+            config.globalDistanceUnit.set(DistanceUnit.INCH);
+            config.encoderResolutionUnit.set(DistanceUnit.INCH);
+            config.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        });
     }
 
-    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
+    public static SwerveConfig swerveConfig = new SwerveConfig(config -> {
+        config.voltageCompensation.set(true);
+        config.zeroPowerBehavior.set(SwerveConfig.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES);
+    });
 
-    public static SwerveConstants swerveConstants = new SwerveConstants()
-            .maxPower(1);
+    // Conservative starting values only. Tune these on the robot before relying
+    // on path following; the old 2.x PIDF constants do not map directly to Foresight.
+    public static ForesightConfig foresightConfig = new ForesightConfig(config -> {
+        config.forwardTranslational.set(Controller.piecewise(Controller.proportional(0.08))
+                .put(2.5, Controller.proportional(0.2)));
+        config.strafeTranslational.set(Controller.piecewise(Controller.proportional(0.08))
+                .put(2.5, Controller.proportional(0.2)));
+        config.coast.set(Controller.proportionalFeedforward(0.01));
+        config.brake.set(Controller.proportionalFeedforward(0.01));
+        config.headingFeedback.set(Controller.proportional(1.0));
+        config.headingBrakeCoefficients.set(Vector2D.cartesian(0.05, 0.005));
+        config.linearBrakeCoefficients.set(Matrix.diag(0.1, 0.1));
+        config.quadraticBrakeCoefficients.set(Matrix.diag(0.001, 0.001));
+        config.maxAchievableForwardVelocity.set(30.0);
+        config.maxAchievableStrafeVelocity.set(30.0);
+        config.naturalForwardDeceleration.set(50.0);
+        config.naturalStrafeDeceleration.set(50.0);
+    });
 
-    public static DifferentialPod leftPod(HardwareMap hwm){
-        return new DifferentialPod(hwm,
+    public static DifferentialPod leftPod(HardwareMap hardwareMap) {
+        return new DifferentialPod(hardwareMap,
                 "leftPodLeftMotor", "leftPodRightMotor",
-                new PIDFCoefficients(0, 0, 0, 0),
-                DcMotorSimple.Direction.FORWARD,
-                DcMotorSimple.Direction.REVERSE,
-                Direction.FORWARD,
-                Direction.REVERSE,
-                0,
-                new Pose(0, 0),
-                500
-        );
+                0.25, 0.0, 0.0, 0.2,
+                true,   // swapSteerAndDrive
+                true,   // steerReversed
+                true,   // driveReversed
+                0,      // forwardAngleRad
+                Vector2D.cartesian(0, -4.5),
+                537.7);
     }
 
-    public static DifferentialPod rightPod(HardwareMap hwm){
-        return new DifferentialPod(hwm,
+    public static DifferentialPod rightPod(HardwareMap hardwareMap) {
+        return new DifferentialPod(hardwareMap,
                 "rightPodLeftMotor", "rightPodRightMotor",
-                new PIDFCoefficients(0, 0, 0, 0),
-                DcMotorSimple.Direction.FORWARD,
-                DcMotorSimple.Direction.REVERSE,
-                Direction.FORWARD,
-                Direction.REVERSE,
-                0,
-                new Pose(0, 0),
-                500
-        );
+                0.25, 0.0, 0.0, 0.2,
+                true,   // swapSteerAndDrive
+                true,  // steerReversed
+                false,  // driveReversed
+                Math.PI, // forwardAngleRad
+                Vector2D.cartesian(0, 4.5),
+                537.7);
     }
 
-    public static Drivetrain createDriveTrain(HardwareMap hardwareMap){
-        return new SwerveBuilder(hardwareMap, swerveConstants)
-                .addPod(leftPod(hardwareMap))
-                .addPod(rightPod(hardwareMap))
-                .build();
+    public static Swerve createDriveTrain(HardwareMap hardwareMap) {
+        return new Swerve(hardwareMap, swerveConfig, leftPod(hardwareMap), rightPod(hardwareMap));
     }
-
 
     public static Follower createFollower(HardwareMap hardwareMap) {
-        PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, createPinpointConstants());
         return new Follower(
-                followerConstants,
-                localizer,
-                createDriveTrain(hardwareMap)
-        );
+                new PinpointLocalizer(hardwareMap, createPinpointConfig()),
+                createDriveTrain(hardwareMap),
+                new Foresight(foresightConfig));
     }
 }

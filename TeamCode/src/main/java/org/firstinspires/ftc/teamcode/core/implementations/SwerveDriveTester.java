@@ -1,71 +1,73 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
-import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.drivetrain.DrivePowers;
+import com.pedropathing.revhub.drivetrains.Swerve;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import org.firstinspires.ftc.teamcode.core.SmartGamepad;
-import org.firstinspires.ftc.teamcode.core.TeleOpCore;
+import io.github.callamj.sugar.cube.api.Signal;
+import io.github.callamj.sugar.snap.api.HotOpMode;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
-import org.firstinspires.ftc.teamcode.hardware.SmartMotor;
 
-@Configurable
+/**
+ * Robot-centric swerve drive through Pedro's {@link Swerve}, the same path the Follower uses.
+ * Left stick translates, right stick X turns. Pod angles are in Pedro's frame (pi/2 = forward).
+ */
 @TeleOp(name = "4 - SwerveDriveTester")
-public class SwerveDriveTester extends TeleOpCore {
-
-    private SmartMotor LLMotor, LRMotor, RRMotor, RLMotor;
+public class SwerveDriveTester extends HotOpMode {
+    private static final double DEADBAND = 0.1;
     private DifferentialPod leftPod, rightPod;
+    private Swerve swerve;
+    private Signal<Double>[] podSignals;
 
     @Override
-    protected void onInitialize() {
+    public void onInit() {
         leftPod = Constants.leftPod(hardwareMap);
         rightPod = Constants.rightPod(hardwareMap);
+        leftPod.resetEncoders();
+        rightPod.resetEncoders();
+        swerve = new Swerve(hardwareMap, Constants.swerveConfig, leftPod, rightPod);
 
-        LLMotor = hardware.getMotor("leftPodLeftMotor");
-        LRMotor = hardware.getMotor("leftPodRightMotor");
-        RRMotor = hardware.getMotor("rightPodRightMotor");
-        RLMotor = hardware.getMotor("rightPodLeftMotor");
-
-        prettyTelem.addLine("Swerve Motors")
-                .addData("Left Pod Left Motor", LLMotor::getCurrentPosition)
-                .addData("Left Pod Right Motor", LRMotor::getCurrentPosition)
-                .addData("Right Pod Left Motor", RLMotor::getCurrentPosition)
-                .addData("Right Pod Right Motor", RRMotor::getCurrentPosition);
-
-        prettyTelem.addLine("Swerve Pods")
-                .addData("Left Pod Angle", leftPod::getAngle)
-                .addData("Right Pod Angle", rightPod::getAngle);
+        String[] names = {"left.leftPower", "left.rightPower", "right.leftPower", "right.rightPower",
+                "left.actualAngle", "right.actualAngle", "left.desiredAngle", "right.desiredAngle",
+                "left.targetAngle", "right.targetAngle",
+                "left.pidOutput", "right.pidOutput"};
+        podSignals = new Signal[names.length];
+        for (int i = 0; i < names.length; i++) {
+            podSignals[i] = sugarCube().signals().doubleValue("swerve.pods." + names[i],
+                    names[i].contains("Angle") ? "rad" : "power", 50);
+        }
     }
 
     @Override
-    protected void onRun() {
+    public void onLoop() {
+        // Pedro: forward +, strafe + = left, turn + = CCW.
+        double forward = -applyDeadband(gamepad1.left_stick_y);
+        double strafeLeft = -applyDeadband(gamepad1.left_stick_x);
+        double turnCcw = -applyDeadband(gamepad1.right_stick_x);
+        swerve.drive(new DrivePowers(forward, strafeLeft, turnCcw), true);
 
+        double[] values = {leftPod.getLeftPower(), leftPod.getRightPower(), rightPod.getLeftPower(),
+                rightPod.getRightPower(), leftPod.getAngle(), rightPod.getAngle(), leftPod.getDesiredAngle(),
+                rightPod.getDesiredAngle(), leftPod.getTargetAngle(), rightPod.getTargetAngle(),
+                leftPod.getTurnPower(), rightPod.getTurnPower()};
+        for (int i = 0; i < values.length; i++) podSignals[i].publish(values[i]);
+
+        telemetry.addData("Forward / strafe left / turn CCW", "%.2f / %.2f / %.2f", forward, strafeLeft, turnCcw);
+        telemetry.addData("Left angle actual / target (deg)", "%.1f / %.1f",
+                Math.toDegrees(leftPod.getAngle()), Math.toDegrees(leftPod.getTargetAngle()));
+        telemetry.addData("Right angle actual / target (deg)", "%.1f / %.1f",
+                Math.toDegrees(rightPod.getAngle()), Math.toDegrees(rightPod.getTargetAngle()));
+        telemetry.addData("PID output L/R", "%.3f / %.3f", leftPod.getTurnPower(), rightPod.getTurnPower());
+        telemetry.update();
     }
 
     @Override
-    protected void checkGamepads(SmartGamepad gamepad1, SmartGamepad gamepad2) {
-        double xSig = gamepad1.leftStickX;
-        double ySig = gamepad1.leftStickY;
-        double angSig = gamepad1.rightStickX;
-
-        calcPod(leftPod, xSig, ySig, angSig);
-        calcPod(rightPod, xSig, ySig, angSig);
+    public void onStop() {
+        if (swerve != null) swerve.stop(false);
+        if (podSignals != null) for (Signal<Double> signal : podSignals) signal.close();
     }
 
-    @Override
-    protected void onTick() {
-
-    }
-
-    private void calcPod(DifferentialPod pod, double xSig, double ySig, double angSig){
-        double podOffsetX = pod.getOffset().getX();
-        double podOffsetY = pod.getOffset().getY();
-
-        double vx = xSig - angSig * podOffsetY;
-        double vy = ySig + angSig * podOffsetX;
-        double magnitude = Math.hypot(vx, vy);
-        double angleRad = Math.atan2(vy, vx);
-
-        pod.move(angleRad, magnitude, false);
+    private double applyDeadband(double input) {
+        return Math.abs(input) > DEADBAND ? input : 0;
     }
 }
