@@ -19,6 +19,13 @@ import java.util.Map;
  */
 public class DifferentialPod implements SwervePod {
 
+    /** Selects which of the pod's two differential actions are enabled. */
+    public enum Mode {
+        DRIVE_ONLY,
+        ROTATE_ONLY,
+        DRIVE_AND_ROTATE
+    }
+
     // Motors always run in their native direction; the three signs below describe the pod instead.
     private final DcMotorEx leftDriveMotor, rightDriveMotor;
 
@@ -47,6 +54,8 @@ public class DifferentialPod implements SwervePod {
 
     private double appliedRightPower = 0;
     private double appliedLeftPower = 0;
+
+    private Mode mode = Mode.DRIVE_AND_ROTATE;
 
     private final double ticksPerRadian;
 
@@ -140,6 +149,19 @@ public class DifferentialPod implements SwervePod {
         return lastTurnPower;
     }
 
+    /** Returns the actions currently enabled for this pod. */
+    public Mode getMode() {
+        return mode;
+    }
+
+    /** Sets which actions {@link #move(double, double, boolean)} and {@link #setOpenLoopPower(double, double)} apply. */
+    public void setMode(Mode mode) {
+        if (mode == null) {
+            throw new IllegalArgumentException("mode cannot be null");
+        }
+        this.mode = mode;
+    }
+
     /**
      * Sets drive motor zero power behavior to FLOAT.
      */
@@ -197,7 +219,7 @@ public class DifferentialPod implements SwervePod {
         // its drive power. A held target has already made this choice and must not
         // be optimized again. Hysteresis prevents encoder noise around 90 degrees
         // from changing the chosen representation every loop.
-        if (optimizeDriveDirection && !ignoreAngleChanges) {
+        if (optimizeDriveDirection && !ignoreAngleChanges && mode == Mode.DRIVE_AND_ROTATE) {
             double reversedTargetAngleRad = normalizeAngle(targetAngleRad + Math.PI);
             double reversedErrorRad = getSignedAngleDifference(actualRad, reversedTargetAngleRad);
 
@@ -237,6 +259,12 @@ public class DifferentialPod implements SwervePod {
      * Positive steer turns the pod CCW (top view) once steerReversed is set correctly.
      */
     public void setOpenLoopPower(double drivePower, double steerPower) {
+        if (mode == Mode.DRIVE_ONLY) {
+            steerPower = 0;
+        } else if (mode == Mode.ROTATE_ONLY) {
+            drivePower = 0;
+        }
+
         double drive = driveSign * drivePower;
         double steer = steerSign * steerPower;
 

@@ -18,11 +18,8 @@ public class SwerveDriveTester extends HotOpMode {
     private DifferentialPod leftPod, rightPod;
     private Swerve swerve;
     private Signal<Double>[] podSignals;
-    /**
-     * FALSE: LEFT
-     * TRUE: RIGHT
-     */
-    private boolean podSelection = false;
+
+    private ControlMode activeControlMode = ControlMode.DRIVE;
 
     @Override
     public void onInit() {
@@ -58,15 +55,26 @@ public class SwerveDriveTester extends HotOpMode {
         for (int i = 0; i < values.length; i++) podSignals[i].publish(values[i]);
 
         if(gamepad1.dpad_left) {
-            podSelection = false;
+            activeControlMode = ControlMode.ADJUST_LEFT_POD;
         } else if(gamepad1.dpad_right){
-            podSelection = true;
+            activeControlMode = ControlMode.ADJUST_RIGHT_POD;
+        } else if(gamepad1.dpad_up) {
+            activeControlMode = ControlMode.DRIVE;
         }
 
-        if(!podSelection){ // left
-            leftPod.setForwardAngleRad(leftPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.1);
-        } else { // right
-            rightPod.setForwardAngleRad(rightPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.1);
+        if (activeControlMode == ControlMode.ADJUST_LEFT_POD) {
+            leftPod.setForwardAngleRad(leftPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.05);
+            leftPod.setMode(DifferentialPod.Mode.ROTATE_ONLY);
+            rightPod.setMode(DifferentialPod.Mode.ROTATE_ONLY);
+            leftPod.move(0, 0, false);
+        } else if (activeControlMode == ControlMode.ADJUST_RIGHT_POD) {
+            rightPod.setForwardAngleRad(rightPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.05);
+            leftPod.setMode(DifferentialPod.Mode.ROTATE_ONLY);
+            rightPod.setMode(DifferentialPod.Mode.ROTATE_ONLY);
+            rightPod.move(0, 0, false);
+        } else {
+            leftPod.setMode(DifferentialPod.Mode.DRIVE_AND_ROTATE);
+            rightPod.setMode(DifferentialPod.Mode.DRIVE_AND_ROTATE);
         }
 
         telemetry.addData("Forward / strafe left / turn CCW", "%.2f / %.2f / %.2f", forward, strafeLeft, turnCcw);
@@ -86,5 +94,11 @@ public class SwerveDriveTester extends HotOpMode {
 
     private double applyDeadband(double input) {
         return Math.abs(input) > DEADBAND ? input : 0;
+    }
+
+    public enum ControlMode {
+        DRIVE,
+        ADJUST_LEFT_POD,
+        ADJUST_RIGHT_POD
     }
 }
