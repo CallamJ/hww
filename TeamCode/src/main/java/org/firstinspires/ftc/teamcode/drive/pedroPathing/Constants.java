@@ -68,7 +68,7 @@ public final class Constants {
                 0.25, 0.0, 0.0, 0.2,
                 true,   // swapSteerAndDrive
                 true,   // steerReversed
-                true,   // driveReversed
+                false,   // driveReversed
                 0,      // forwardAngleRad
                 Vector2D.cartesian(0, -4.5),
                 537.7);
@@ -77,10 +77,10 @@ public final class Constants {
     public static DifferentialPod rightPod(HardwareMap hardwareMap) {
         return new DifferentialPod(hardwareMap,
                 "rightPodLeftMotor", "rightPodRightMotor",
-                0.25, 0.0, 0.0, 0.2,
+                0.25, 0.0, 0.0, 0.3,
                 true,   // swapSteerAndDrive
                 true,  // steerReversed
-                false,  // driveReversed
+                true,  // driveReversed
                 Math.PI, // forwardAngleRad
                 Vector2D.cartesian(0, 4.5),
                 537.7);

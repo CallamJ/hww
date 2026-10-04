@@ -18,6 +18,11 @@ public class SwerveDriveTester extends HotOpMode {
     private DifferentialPod leftPod, rightPod;
     private Swerve swerve;
     private Signal<Double>[] podSignals;
+    /**
+     * FALSE: LEFT
+     * TRUE: RIGHT
+     */
+    private boolean podSelection = false;
 
     @Override
     public void onInit() {
@@ -51,6 +56,18 @@ public class SwerveDriveTester extends HotOpMode {
                 rightPod.getDesiredAngle(), leftPod.getTargetAngle(), rightPod.getTargetAngle(),
                 leftPod.getTurnPower(), rightPod.getTurnPower()};
         for (int i = 0; i < values.length; i++) podSignals[i].publish(values[i]);
+
+        if(gamepad1.dpad_left) {
+            podSelection = false;
+        } else if(gamepad1.dpad_right){
+            podSelection = true;
+        }
+
+        if(!podSelection){ // left
+            leftPod.setForwardAngleRad(leftPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.1);
+        } else { // right
+            rightPod.setForwardAngleRad(rightPod.getForwardAngleRad() + (gamepad1.left_trigger - gamepad1.right_trigger) * 0.1);
+        }
 
         telemetry.addData("Forward / strafe left / turn CCW", "%.2f / %.2f / %.2f", forward, strafeLeft, turnCcw);
         telemetry.addData("Left angle actual / target (deg)", "%.1f / %.1f",
