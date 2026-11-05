@@ -5,26 +5,19 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.ManualDrive;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.teamcode.components.AimController;
 import org.firstinspires.ftc.teamcode.components.Turret;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
 import org.firstinspires.ftc.teamcode.core.TeleOpCore;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.hardware.SmartMotor;
 import org.firstinspires.ftc.teamcode.hardware.SmartServo;
+import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
 @TeleOp(name = "1 - Aiming TeleOp")
 public class AimingTeleOp extends TeleOpCore {
 
     Follower follower;
-
-    public static float degreesPerPitch = 270;
-
-    public AllianceColor allianceColor = AllianceColor.RED;
-
-    private Pose negRedHive = new Pose(-22, 14);
-    private Pose posRedHive = new Pose(22, 14);
-    private Pose negBlueHive = new Pose(-22, -14);
-    private Pose posBlueHive = new Pose(22, -14);
 
     private Turret turret;
 
@@ -32,6 +25,10 @@ public class AimingTeleOp extends TeleOpCore {
     private SmartServo pitchServo;
 
     private boolean fieldCentric = false;
+
+    private AllianceColor allianceColor;
+
+    private AimController aimController;
 
     @Override
     protected void onInitialize() {
@@ -46,7 +43,7 @@ public class AimingTeleOp extends TeleOpCore {
         turret = new Turret(yawMotor);
         turret.reset();
 
-        setTurretDirection(-30, 30);
+        aimController = new AimController(turret, pitchServo);
 
         prettyTelem.addData("Pos X", () -> follower.pose().x());
         prettyTelem.addData("Pos Y", () -> follower.pose().y());
@@ -86,43 +83,12 @@ public class AimingTeleOp extends TeleOpCore {
         follower.manual(powers);
     }
 
-    public void setTurretDirection(double yaw, double pitch) {
-        turret.setTargetPosition(yaw);
-        pitchServo.setPosition(0.5 + pitch/degreesPerPitch);
-    }
 
-    public void updateTurret(Pose currentPose, Pose targetPose) {
-        double relativeX = targetPose.x() - currentPose.x();
-        double relativeY = targetPose.y() - currentPose.y();
-
-        double bearing = Math.toDegrees(Math.atan2(relativeX, relativeY));
-
-        double distance = Math.sqrt(Math.pow(relativeX, 2) + Math.pow(relativeY, 2));
-
-        double pitch = Math.toDegrees(Math.atan2(60,distance));
-        double yaw = bearing - 90 + Math.toDegrees(currentPose.heading());
-
-        setTurretDirection(yaw, pitch);
-    }
-
-    public Pose getTargetHive(Pose currentPose, AllianceColor allianceColor) {
-        if (currentPose.x() > 0) {
-            return allianceColor == AllianceColor.BLUE ? posBlueHive : posRedHive;
-        } else {
-            return allianceColor == AllianceColor.BLUE ? negBlueHive : negRedHive;
-        }
-    }
 
     @Override
     protected void onTick() {
         follower.update();
         Pose currentPose = follower.pose();
-        updateTurret(currentPose, getTargetHive(currentPose, allianceColor));
-        turret.tick();
-    }
-
-    public enum AllianceColor {
-            BLUE,
-            RED
+        aimController.tick(currentPose, allianceColor);
     }
 }
