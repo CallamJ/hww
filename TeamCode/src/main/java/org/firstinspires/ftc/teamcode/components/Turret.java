@@ -10,8 +10,8 @@ public class Turret {
 
     public static float kP = 0.01f, kI = 0, kD = 0.02f, kF = 0;
 
-    private double minAngle = -720;
-    private double maxAngle = 720;
+    private double minAngle = -360;
+    private double maxAngle = 360;
 
     public static float ticksPerYawRevolution = 288;
 
