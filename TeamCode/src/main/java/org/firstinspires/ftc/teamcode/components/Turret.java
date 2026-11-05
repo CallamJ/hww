@@ -15,6 +15,10 @@ public class Turret {
     private final SmartMotor yawMotor;
 
     public Turret(SmartMotor yawMotor) {
+        if (yawMotor == null) {
+            throw new IllegalArgumentException("yawMotor must not be null");
+        }
+
         this.yawMotor = yawMotor;
 
         turretPID = PID.builder()

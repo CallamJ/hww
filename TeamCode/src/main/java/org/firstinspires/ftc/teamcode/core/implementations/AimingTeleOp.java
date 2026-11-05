@@ -1,49 +1,21 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
 import com.pedropathing.drivetrain.DrivePowers;
-import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.ManualDrive;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.teamcode.components.AimController;
-import org.firstinspires.ftc.teamcode.components.Turret;
+import org.firstinspires.ftc.teamcode.core.ChipBase;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
-import org.firstinspires.ftc.teamcode.core.TeleOpCore;
-import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.hardware.SmartMotor;
-import org.firstinspires.ftc.teamcode.hardware.SmartServo;
 import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
 @TeleOp(name = "1 - Aiming TeleOp")
-public class AimingTeleOp extends TeleOpCore {
-
-    Follower follower;
-
-    private Turret turret;
-
-    private SmartMotor yawMotor;
-    private SmartServo pitchServo;
+public class AimingTeleOp extends ChipBase {
 
     private boolean fieldCentric = false;
 
-    private AllianceColor allianceColor;
-
-    private AimController aimController;
-
     @Override
     protected void onInitialize() {
-
-        follower = Constants.create(hardwareMap);
-
-        follower.setPose(new Pose(0, 0, 0));
-
-        yawMotor = hardware.getMotor("yawMotor");
-        pitchServo = hardware.getServo("pitchServo");
-
-        turret = new Turret(yawMotor);
-        turret.reset();
-
-        aimController = new AimController(turret, pitchServo);
+        super.onInitialize();
 
         prettyTelem.addData("Pos X", () -> follower.pose().x());
         prettyTelem.addData("Pos Y", () -> follower.pose().y());
@@ -51,6 +23,11 @@ public class AimingTeleOp extends TeleOpCore {
 
         prettyTelem.addData("Target", turret::getTargetPosition);
         prettyTelem.addData("Current", turret::getCurrentPosition);
+    }
+
+    @Override
+    protected Pose startPose() {
+        return new Pose(0,0,0);
     }
 
     @Override
@@ -87,7 +64,8 @@ public class AimingTeleOp extends TeleOpCore {
 
     @Override
     protected void onTick() {
-        follower.update();
+        super.onTick();
+
         Pose currentPose = follower.pose();
         aimController.tick(currentPose, allianceColor);
     }

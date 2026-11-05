@@ -1,33 +1,14 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
-import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import org.firstinspires.ftc.teamcode.components.AimController;
-import org.firstinspires.ftc.teamcode.components.Turret;
-import org.firstinspires.ftc.teamcode.core.OpModeCore;
-import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.core.ChipBase;
+import org.firstinspires.ftc.teamcode.core.SmartGamepad;
 import com.pedropathing.api.Paths;
 import com.pedropathing.paths.Path;
-import org.firstinspires.ftc.teamcode.hardware.SmartMotor;
-import org.firstinspires.ftc.teamcode.hardware.SmartServo;
-import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
 @Autonomous
-public class SimpleAutoMode extends OpModeCore {
-
-    Follower follower;
-
-    private Turret turret;
-
-    private SmartMotor yawMotor;
-    private SmartServo pitchServo;
-
-    private AimController aimController;
-
-    AllianceColor allianceColor = AllianceColor.RED;
-
-    Pose startPose = new Pose(48, 63, Math.PI);
+public class SimpleAutoMode extends ChipBase {
     Pose park = new Pose(48, 61, Math.PI);
 
     Pose step1 = new Pose(48, 12, Math.PI);
@@ -35,7 +16,7 @@ public class SimpleAutoMode extends OpModeCore {
     private State state = State.START_MOVE_TO_HIVE;
 
     private Path step1() {
-        return Paths.line(startPose, step1).linear(startPose, step1);
+        return Paths.line(startPose(), step1).linear(startPose(), step1);
     }
 
     private Path park() {
@@ -44,18 +25,7 @@ public class SimpleAutoMode extends OpModeCore {
 
     @Override
     protected void onInitialize() {
-
-        follower = Constants.create(hardwareMap);
-
-        yawMotor = hardware.getMotor("yawMotor");
-        pitchServo = hardware.getServo("pitchServo");
-
-        turret = new Turret(yawMotor);
-        turret.reset();
-
-        aimController = new AimController(turret, pitchServo);
-
-        follower.setPose(startPose);
+        super.onInitialize();
 
         prettyTelem.addData("Pos X", () -> follower.pose().x());
         prettyTelem.addData("Pos Y", () -> follower.pose().y());
@@ -66,8 +36,13 @@ public class SimpleAutoMode extends OpModeCore {
     }
 
     @Override
+    protected Pose startPose() {
+        return new Pose(48, 63, Math.PI);
+    }
+
+    @Override
     protected void onTick() {
-        follower.update();
+        super.onTick();
 
         switch (state) {
             case START_MOVE_TO_HIVE:
@@ -103,6 +78,9 @@ public class SimpleAutoMode extends OpModeCore {
         Pose currentPose = follower.pose();
         aimController.tick(currentPose, allianceColor);
     }
+
+    @Override
+    protected void checkGamepads(SmartGamepad gamepad1, SmartGamepad gamepad2) {}
 
     private enum State {
         START_MOVE_TO_HIVE,
