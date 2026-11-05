@@ -15,6 +15,8 @@ public class SimpleTeleOp extends TeleOpCore {
 
     Follower follower;
 
+    private boolean fieldCentric = false;
+
     @Override
     protected void onInitialize() {
 
@@ -29,7 +31,22 @@ public class SimpleTeleOp extends TeleOpCore {
 
     @Override
     protected void checkGamepads(SmartGamepad gamepad1, SmartGamepad gamepad2) {
-        DrivePowers powers = new DrivePowers(-gamepad1.leftStickY, -gamepad1.leftStickX, -gamepad1.rightStickX);
+        DrivePowers powers;
+
+        if (gamepad1.rightBumperPressed()) {
+            fieldCentric = !fieldCentric;
+        }
+
+        if (fieldCentric) {
+            powers = ManualDrive.fieldCentric(
+                    gamepad1.leftStickY,
+                    gamepad1.leftStickX,
+                    -gamepad1.rightStickX,
+                    follower.pose().heading()
+            );
+        } else {
+            powers = new DrivePowers(-gamepad1.leftStickY, -gamepad1.leftStickX, -gamepad1.rightStickX);
+        }
 
         follower.manual(powers);
     }
