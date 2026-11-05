@@ -8,16 +8,11 @@ import org.firstinspires.ftc.teamcode.hardware.controllers.PID;
 public class Turret {
     PID turretPID;
 
-    public static float kP = 0.01f, kI = 0, kD = 0.02f, kF = 0;
+    private final float kP = 0.01f, kI = 0, kD = 0.02f, kF = 0;
 
-    private double minAngle = -360;
-    private double maxAngle = 360;
+    private double targetPosition = 0;
 
-    public static float ticksPerYawRevolution = 288;
-
-    double targetPosition = 0;
-
-    SmartMotor yawMotor;
+    private final SmartMotor yawMotor;
 
     public Turret(SmartMotor yawMotor) {
         this.yawMotor = yawMotor;
@@ -33,6 +28,9 @@ public class Turret {
     }
 
     private double unwrapTarget(double degrees, double currentAngle) {
+        double minAngle = -360;
+        double maxAngle = 360;
+        
         double minK = Math.ceil((minAngle - degrees) / 360.0);
         double maxK = Math.floor((maxAngle - degrees) / 360.0);
 
@@ -57,6 +55,8 @@ public class Turret {
     }
 
     public double getCurrentPosition() {
+        float ticksPerYawRevolution = 288;
+        
         return (((double)yawMotor.getCurrentPosition()) / ticksPerYawRevolution)*360;
     }
 
