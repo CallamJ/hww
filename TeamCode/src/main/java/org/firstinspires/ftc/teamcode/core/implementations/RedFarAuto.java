@@ -1,17 +1,20 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
+import com.pedropathing.api.Paths;
 import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.teamcode.core.ChipBase;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
-import com.pedropathing.api.Paths;
-import com.pedropathing.paths.Path;
+import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
-@Autonomous
-public class SimpleAutoMode extends ChipBase {
-    Pose park = new Pose(48, 61, Math.PI);
+@Autonomous(name = "RED Far")
+public class RedFarAuto extends ChipBase {
+    Pose step2 = new Pose(-48, 50, 0);
 
-    Pose step1 = new Pose(48, 12, Math.PI);
+    Pose step1 = new Pose(-56, 12, 0);
+
+    Pose park = new Pose(24, 61, 0);
 
     private State state = State.START_MOVE_TO_HIVE;
 
@@ -19,8 +22,12 @@ public class SimpleAutoMode extends ChipBase {
         return Paths.line(startPose(), step1).linear(startPose(), step1);
     }
 
+    private Path step2() {
+        return Paths.line(step1, step2).linear(step1, step2);
+    }
+
     private Path park() {
-        return Paths.line(step1, park).linear(step1, park);
+        return Paths.line(step2, park).linear(step2, park);
     }
 
     @Override
@@ -37,7 +44,12 @@ public class SimpleAutoMode extends ChipBase {
 
     @Override
     protected Pose startPose() {
-        return new Pose(48, 63, Math.PI);
+        return new Pose(-48, 63, 0);
+    }
+
+    @Override
+    protected AllianceColor initialAllianceColor() {
+        return AllianceColor.BLUE;
     }
 
     @Override
@@ -60,13 +72,22 @@ public class SimpleAutoMode extends ChipBase {
                 break;
             case FIRING:
                 // if done firing
-                state = State.START_PARKING;
+                state = State.START_PARKING1;
                 break;
-            case START_PARKING:
+            case START_PARKING1:
+                follower.follow(step2());
+                state = State.PARKING1;
+                break;
+            case PARKING1:
+                if (follower.isBusy()) {
+                    state = State.START_PARKING2;
+                }
+                break;
+            case START_PARKING2:
                 follower.follow(park());
-                state = State.PARKING;
+                state = State.PARKING2;
                 break;
-            case PARKING:
+            case PARKING2:
                 if (!follower.isBusy()) {
                     state = State.IDLE;
                 }
@@ -87,8 +108,10 @@ public class SimpleAutoMode extends ChipBase {
         MOVING_TO_HIVE,
         START_FIRING,
         FIRING,
-        START_PARKING,
-        PARKING,
+        START_PARKING1,
+        PARKING1,
+        START_PARKING2,
+        PARKING2,
         IDLE
     }
 
