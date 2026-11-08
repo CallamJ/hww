@@ -76,7 +76,7 @@
 ## State Machines And Coordinators
 
 - `components/subsystems/FireControlSystem.java`
-  Firing/aiming coordinator. Key fields: `runLauncher`, `fallbackVelocity`, `allianceColor`, `depotAutoAimEnabled`, `firing`, and static `bearingToDepot`.
+  Firing/aiming coordinator. Key fields: `runLauncher`, `fallbackVelocity`, `startAllianceColor`, `depotAutoAimEnabled`, `firing`, and static `bearingToDepot`.
   State enum: `SEEKING`, `READYING`, `READY`.
   Hidden behavior: it falls back to depot-pose aiming when tags are not visible if configured to do so.
 - `components/subsystems/VolleyFireStorageManager.java`
