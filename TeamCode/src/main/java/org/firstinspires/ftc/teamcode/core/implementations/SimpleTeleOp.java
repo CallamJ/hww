@@ -6,6 +6,7 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.core.ChipBase;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
+import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
 @TeleOp(name = "2 - Simple TeleOp")
 public class SimpleTeleOp extends ChipBase {
@@ -23,6 +24,11 @@ public class SimpleTeleOp extends ChipBase {
     @Override
     protected Pose startPose() {
         return new Pose(0, 0, 0);
+    }
+
+    @Override
+    protected AllianceColor initialAllianceColor() {
+        return AllianceColor.RED;
     }
 
     @Override
