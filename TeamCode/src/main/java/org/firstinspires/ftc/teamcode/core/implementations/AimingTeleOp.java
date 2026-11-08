@@ -31,6 +31,11 @@ public class AimingTeleOp extends ChipBase {
     }
 
     @Override
+    protected AllianceColor initialAllianceColor() {
+        return AllianceColor.RED;
+    }
+
+    @Override
     protected void checkGamepads(SmartGamepad gamepad1, SmartGamepad gamepad2) {
         DrivePowers powers;
 
