@@ -57,10 +57,11 @@ public abstract class ChipBase extends TeleOpCore {
         }
 
         // Utilities
-
+        allianceColor = initialAllianceColor();
     }
 
     protected abstract Pose startPose();
+    protected abstract AllianceColor initialAllianceColor();
 
     @Override
     protected void onTick() {
