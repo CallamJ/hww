@@ -175,8 +175,8 @@ A separate framework convention worth preserving even though no historical fix a
 - Android Gradle Plugin 8.7.0, `compileSdk` 35 (TeamCode) / 34 (FtcRobotController), `minSdk` 24, Java 8 source/target, NDK 21.3.6528147, ABIs `armeabi-v7a` + `arm64-v8a`.
 - `targetSdk` is intentionally pinned to 28 with `//noinspection ExpiredTargetSdkVersion` in `build.common.gradle`. Do not "fix" it — it is a deliberate FTC SDK requirement.
 - `versionCode` and `versionName` are scraped at configure time from `FtcRobotController/src/main/AndroidManifest.xml` by a regex in `build.common.gradle`. Bump version fields there, not in TeamCode.
-- FTC SDK pinned to `org.firstinspires.ftc:* @ 11.1.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
-- Pedro Pathing pinned to `com.pedropathing:revhub:3.0.1`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
+- FTC SDK pinned to `org.firstinspires.ftc:* @ 11.2.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
+- Pedro Pathing pinned to `com.pedropathing:revhub:3.0.2`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
 - Non-default Maven source: `https://maven.brott.dev/` (Road Runner). Pedro 3.x artifacts publish to Maven Central.
 - TeamCode-only Java deps worth noticing while reading utilities/persistence code: `commons-math3:3.6.1`, `jackson-databind:2.13.4.2`.
 
