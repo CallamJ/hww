@@ -60,7 +60,7 @@
 - `TeleOpCore` snapshots initial gamepad state through `OpModeCore`'s framework pre-init plumbing, not through subclass `super.onInitialize()` calls. TeleOp consumers should put robot-specific setup in `onInitialize()` without chaining to the parent.
 - `Hardware` is now per-opmode, not global static state. Do not reintroduce the old `Hardware.init(...)` mental model.
 - Several opmodes keep subsystem references in static fields and explicitly reset them on init. That is intentional protection against stale state across FTC opmode reruns.
-- `utilities/LiveMatchTuning.java` groups match-facing values for code-side tuning. There is no runtime configurable UI integration.
+- `utilities/LiveMatchTuning.java` is the only intended match-facing `@Configurable` surface. Keep it scalar-only; do not add `@Configurable` back to mechanisms, subsystems, autos, or classes with complex object fields unless the Sloth patch-application cost has been reconsidered. The one other use is `SwervePodRotationTester`, a bench opmode that exposes a single scalar (`ticksPerRadian`).
 
 ## Active Control Surfaces
 
@@ -71,7 +71,7 @@
 - `drive/pedroPathing/Constants.java`
   Shared follower and drivetrain tuning that affects both teleop follower-assisted behavior and autonomous.
 - `utilities/LiveMatchTuning.java`
-  Code-side source for current match-facing scalar values. Autonomous path/plan constants are also code-patched.
+  Runtime Control Hub tuning for current match-facing scalar values. Autonomous path/plan constants are code-patched rather than exposed as live configurables.
 
 ## State Machines And Coordinators
 
@@ -177,7 +177,10 @@ A separate framework convention worth preserving even though no historical fix a
 - `versionCode` and `versionName` are scraped at configure time from `FtcRobotController/src/main/AndroidManifest.xml` by a regex in `build.common.gradle`. Bump version fields there, not in TeamCode.
 - FTC SDK pinned to `org.firstinspires.ftc:* @ 11.2.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
 - Pedro Pathing pinned to `com.pedropathing:revhub:3.0.2`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
-- Non-default Maven source: `https://maven.brott.dev/` (Road Runner). Pedro 3.x artifacts publish to Maven Central.
+- Hot reload comes from Sloth: `dev.frozenmilk.sinister:Sloth:0.2.4` plus the `dev.frozenmilk:Load:0.2.4` Gradle plugin, applied in `TeamCode/build.gradle` as `dev.frozenmilk.sinister.sloth.load` (after `build.common.gradle`). It adds the `deploySloth` and `removeSlothRemote` tasks.
+- `@Configurable` runtime tuning and dashboard telemetry come from the Sloth build of Panels: `com.bylazar.sloth:fullpanels:0.2.4+1.0.12`. `OpModeCore` mirrors `PrettyTelemetry` to Panels; the swerve tester opmodes publish graphable values through `PanelsTelemetry` directly.
+- Non-default Maven sources: `https://maven.brott.dev/` (Road Runner) and `https://repo.dairy.foundation/releases` + `/snapshots` (Sloth and the Sloth build of Panels). Pedro 3.x artifacts publish to Maven Central.
+- The `sugar` branch carries the alternative Sugar Snap/Glaze toolchain (`io.github.callamj.sugar`) in place of Sloth + Panels, including `HotOpMode`-based versions of the swerve tester opmodes.
 - TeamCode-only Java deps worth noticing while reading utilities/persistence code: `commons-math3:3.6.1`, `jackson-databind:2.13.4.2`.
 
 ## Validation Guidance

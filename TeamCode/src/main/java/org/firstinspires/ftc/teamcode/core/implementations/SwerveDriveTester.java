@@ -1,47 +1,44 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.revhub.drivetrains.Swerve;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import io.github.callamj.sugar.cube.api.Signal;
-import io.github.callamj.sugar.snap.api.HotOpMode;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
 
 /**
  * Robot-centric swerve drive through Pedro's {@link Swerve}, the same path the Follower uses.
  * Left stick translates, right stick X turns. Pod angles are in Pedro's frame (pi/2 = forward).
+ * Pod powers, angles (rad) and PID outputs are also sent to Panels telemetry for graphing.
  */
 @TeleOp(name = "4 - SwerveDriveTester")
-public class SwerveDriveTester extends HotOpMode {
+public class SwerveDriveTester extends OpMode {
     private static final double DEADBAND = 0.1;
+    private static final String[] POD_VALUE_NAMES = {"left.leftPower", "left.rightPower", "right.leftPower",
+            "right.rightPower", "left.actualAngle", "right.actualAngle", "left.desiredAngle",
+            "right.desiredAngle", "left.targetAngle", "right.targetAngle",
+            "left.pidOutput", "right.pidOutput"};
     private DifferentialPod leftPod, rightPod;
     private Swerve swerve;
-    private Signal<Double>[] podSignals;
+    private TelemetryManager panelsTelemetry;
 
     private ControlMode activeControlMode = ControlMode.DRIVE;
 
     @Override
-    public void onInit() {
+    public void init() {
         leftPod = Constants.leftPod(hardwareMap);
         rightPod = Constants.rightPod(hardwareMap);
         leftPod.resetEncoders();
         rightPod.resetEncoders();
         swerve = new Swerve(hardwareMap, Constants.swerveConfig, leftPod, rightPod);
-
-        String[] names = {"left.leftPower", "left.rightPower", "right.leftPower", "right.rightPower",
-                "left.actualAngle", "right.actualAngle", "left.desiredAngle", "right.desiredAngle",
-                "left.targetAngle", "right.targetAngle",
-                "left.pidOutput", "right.pidOutput"};
-        podSignals = new Signal[names.length];
-        for (int i = 0; i < names.length; i++) {
-            podSignals[i] = sugarCube().signals().doubleValue("swerve.pods." + names[i],
-                    names[i].contains("Angle") ? "rad" : "power", 50);
-        }
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
     }
 
     @Override
-    public void onLoop() {
+    public void loop() {
         // Pedro: forward +, strafe + = left, turn + = CCW.
         double forward = -applyDeadband(gamepad1.left_stick_y);
         double strafeLeft = -applyDeadband(gamepad1.left_stick_x);
@@ -52,7 +49,8 @@ public class SwerveDriveTester extends HotOpMode {
                 rightPod.getRightPower(), leftPod.getAngle(), rightPod.getAngle(), leftPod.getDesiredAngle(),
                 rightPod.getDesiredAngle(), leftPod.getTargetAngle(), rightPod.getTargetAngle(),
                 leftPod.getTurnPower(), rightPod.getTurnPower()};
-        for (int i = 0; i < values.length; i++) podSignals[i].publish(values[i]);
+        for (int i = 0; i < values.length; i++) panelsTelemetry.addData("swerve.pods." + POD_VALUE_NAMES[i], values[i]);
+        panelsTelemetry.update();
 
         if(gamepad1.dpad_left) {
             activeControlMode = ControlMode.ADJUST_LEFT_POD;
@@ -87,9 +85,8 @@ public class SwerveDriveTester extends HotOpMode {
     }
 
     @Override
-    public void onStop() {
+    public void stop() {
         if (swerve != null) swerve.stop(false);
-        if (podSignals != null) for (Signal<Double> signal : podSignals) signal.close();
     }
 
     private double applyDeadband(double input) {

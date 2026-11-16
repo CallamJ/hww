@@ -1,12 +1,12 @@
 package org.firstinspires.ftc.teamcode.core.implementations;
 
 import com.pedropathing.math.Vector2D;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import io.github.callamj.sugar.snap.api.HotOpMode;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ import java.util.List;
  * catches a wrong answer anywhere earlier.
  */
 @TeleOp(name = "4 - SwervePodCalibrator")
-public class SwervePodCalibrator extends HotOpMode {
+public class SwervePodCalibrator extends OpMode {
 
     private static final String[][] POD_MOTOR_NAMES = {
             {"leftPodLeftMotor", "leftPodRightMotor"},
@@ -97,7 +97,11 @@ public class SwervePodCalibrator extends HotOpMode {
     private boolean prevA, prevB, prevX, prevY, prevDpadLeft, prevDpadRight;
 
     @Override
-    public void onInitLoop() {
+    public void init() {
+    }
+
+    @Override
+    public void init_loop() {
         boolean dpadLeft = gamepad1.dpad_left, dpadRight = gamepad1.dpad_right;
         if ((dpadLeft && !prevDpadLeft) || (dpadRight && !prevDpadRight)) podIndex = 1 - podIndex;
         prevDpadLeft = dpadLeft;
@@ -109,7 +113,7 @@ public class SwervePodCalibrator extends HotOpMode {
     }
 
     @Override
-    public void onStart() {
+    public void start() {
         leftMotor = hardwareMap.get(DcMotorEx.class, POD_MOTOR_NAMES[podIndex][0]);
         rightMotor = hardwareMap.get(DcMotorEx.class, POD_MOTOR_NAMES[podIndex][1]);
 
@@ -125,7 +129,7 @@ public class SwervePodCalibrator extends HotOpMode {
     }
 
     @Override
-    public void onLoop() {
+    public void loop() {
         boolean a = pressed(gamepad1.a, prevA), b = pressed(gamepad1.b, prevB);
         boolean x = pressed(gamepad1.x, prevX), y = pressed(gamepad1.y, prevY);
         prevA = gamepad1.a;
@@ -263,7 +267,7 @@ public class SwervePodCalibrator extends HotOpMode {
     }
 
     @Override
-    public void onStop() {
+    public void stop() {
         if (leftMotor != null) stopMotors();
     }
 

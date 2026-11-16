@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.core;
 
+import com.bylazar.telemetry.PanelsTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.hardware.Hardware;
 import org.firstinspires.ftc.teamcode.utilities.PersistentStorage;
@@ -52,7 +53,7 @@ public abstract class OpModeCore extends LinearOpMode {
 	protected final void initialize(){
 		this.hardware = new Hardware(hardwareMap);
 		PersistentStorage.init(hardwareMap);
-		this.prettyTelem = new PrettyTelemetry(telemetry);
+		this.prettyTelem = new PrettyTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
 		frameworkInitialize();
 		onInitialize();
 	}

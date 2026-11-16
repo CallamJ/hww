@@ -18,6 +18,7 @@ import java.util.Locale;
  * <ul>
  * <li>Automatic rounding of numerical values to a specified precision.</li>
  * <li>HTML-based formatting for better visual clarity.</li>
+ * <li>Supports telemetry for both the driver station and an optional FTC Dashboard instance.</li>
  * <li>Provides an intelligent logging system for easy debugging.</li>
  * </ul>
  */
@@ -26,6 +27,11 @@ public class PrettyTelemetry {
     private double roundingPlaces;
 
     private final Telemetry telemetry;
+    private Telemetry panelsTelemetry;
+
+    //todo: Integrate this better with the Panels native telemetry. we probably do not need this special adaptation for Panels like we did with RR
+    private final List<String> dashValueCaptions = new ArrayList<>();
+    private final List<Func<?>> dashValueProducers = new ArrayList<>();
     private Line logLine;
     private String logs = "<i>There are no logs yet...</i>";
 
@@ -50,6 +56,38 @@ public class PrettyTelemetry {
     private void recreateLogLine() {
         this.logLine = addLine("Logs");
         logLine.addData("Log Entries", () -> logs);
+    }
+
+    /**
+     * Constructs a PrettyTelemetry instance with support for both driver station telemetry and Panels telemetry.
+     *
+     * @param opmodeTelemetry       The FTC Telemetry instance for the driver station.
+     * @param panelsTelemetry The FTC Telemetry instance for the dashboard.
+     */
+    public PrettyTelemetry(Telemetry opmodeTelemetry, Telemetry panelsTelemetry){
+        this(opmodeTelemetry);
+        this.panelsTelemetry = panelsTelemetry;
+    }
+
+    /**
+     * Checks if the telemetry instance has an associated FTC Dashboard telemetry.
+     *
+     * @return `true` if Panels telemetry is available, otherwise `false`.
+     */
+    public boolean hasDashboard(){
+        return panelsTelemetry != null;
+    }
+
+    /**
+     * Adds a telemetry data entry to the FTC Dashboard.
+     *
+     * @param caption       The label for the data entry.
+     * @param valueProducer A function that supplies the value dynamically.
+     * @param <T>           The type of value being provided.
+     */
+    public <T> void addDataToDashboard(String caption, Func<T> valueProducer){
+        dashValueCaptions.add(caption);
+        dashValueProducers.add(wrapFunc(valueProducer));
     }
 
     /**
@@ -244,6 +282,8 @@ public class PrettyTelemetry {
     public void resetLayout() {
         telemetry.clearAll();
         configureTelemetryDefaults();
+        dashValueCaptions.clear();
+        dashValueProducers.clear();
         recreateLogLine();
     }
 
@@ -350,6 +390,13 @@ public class PrettyTelemetry {
 
         telemetry.update();
 
+        if (panelsTelemetry != null) {
+            for (int i = 0; i < dashValueCaptions.size(); i++) {
+                panelsTelemetry.addData(dashValueCaptions.get(i), dashValueProducers.get(i).value());
+            }
+
+            panelsTelemetry.update();
+        }
     }
 
 
