@@ -177,6 +177,7 @@ A separate framework convention worth preserving even though no historical fix a
 - `versionCode` and `versionName` are scraped at configure time from `FtcRobotController/src/main/AndroidManifest.xml` by a regex in `build.common.gradle`. Bump version fields there, not in TeamCode.
 - FTC SDK pinned to `org.firstinspires.ftc:* @ 11.2.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
 - Pedro Pathing pinned to `com.pedropathing:revhub:3.0.2`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
+- Shared IntelliJ run configs live in `.run/` and are committed: `Snap Deploy` runs `:TeamCode:snapDevHotDebug`, `Snap APK Install` runs `:TeamCode:snapSafeInstallHotDebug`, and `TeamCode` is the plain Android install. `settings.gradle` pins `rootProject.name = 'HWW'` so the `TeamCode` config's module reference (`HWW.TeamCode`) resolves in any clone directory; do not rename it without updating `.run/TeamCode.run.xml`.
 - Non-default Maven source: `https://maven.brott.dev/` (Road Runner). Pedro 3.x artifacts publish to Maven Central.
 - TeamCode-only Java deps worth noticing while reading utilities/persistence code: `commons-math3:3.6.1`, `jackson-databind:2.13.4.2`.
 
