@@ -5,7 +5,7 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.drive.pedroPathing.SwerveConstants;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
 
 /**
@@ -29,8 +29,8 @@ public class SwervePodRotationTester extends OpMode {
 
     @Override
     public void init() {
-        leftPod = Constants.leftPod(hardwareMap);
-        rightPod = Constants.rightPod(hardwareMap);
+        leftPod = SwerveConstants.leftPod(hardwareMap);
+        rightPod = SwerveConstants.rightPod(hardwareMap);
 
         leftPod.resetEncoders();
         rightPod.resetEncoders();
@@ -57,8 +57,8 @@ public class SwervePodRotationTester extends OpMode {
         telemetry.addData("Right pod encoder difference (ticks)", rightDifference);
         telemetry.addData("Right pod angle estimate (deg)", Math.toDegrees(rightDifference / ratio));
         telemetry.addLine("Point a wheel straight forward and copy its raw angle into forwardAngleRad:");
-        telemetry.addData("Left pod raw angle (rad, Constants ticks)", "%.4f", leftPod.getRawAngleRad());
-        telemetry.addData("Right pod raw angle (rad, Constants ticks)", "%.4f", rightPod.getRawAngleRad());
+        telemetry.addData("Left pod raw angle (rad, SwerveConstants ticks)", "%.4f", leftPod.getRawAngleRad());
+        telemetry.addData("Right pod raw angle (rad, SwerveConstants ticks)", "%.4f", rightPod.getRawAngleRad());
         telemetry.update();
 
         panelsTelemetry.addData("swerve.leftPod.encoderDifference", leftDifference);

@@ -39,7 +39,7 @@ public class SwervePodCalibrator extends OpMode {
     private static final double ALIGN_DRIVE_POWER = 0.15;
     private static final double STICK_DEADBAND = 0.05;
 
-    // Verification gains are local so a bad Constants tune can't mask a bad calibration.
+    // Verification gains are local so a bad SwerveConstants tune can't mask a bad calibration.
     private static final double VERIFY_TURN_P = 0.3;
     private static final double VERIFY_TURN_FF = 0.2;
     private static final double VERIFY_TOLERANCE_RAD = Math.toRadians(8);
@@ -396,7 +396,7 @@ public class SwervePodCalibrator extends OpMode {
 
     private void showResults() {
         telemetry.addLine(verifyPassed ? "CALIBRATION PASSED" : "CALIBRATION FINISHED WITH VERIFY FAILURES");
-        telemetry.addLine("Constants." + POD_NAMES[podIndex] + "Pod() values:");
+        telemetry.addLine("SwerveConstants." + POD_NAMES[podIndex] + "Pod() values:");
         telemetry.addLine(String.format("  %b,   // swapSteerAndDrive", swapSteerAndDrive));
         telemetry.addLine(String.format("  %b,   // steerReversed", steerReversed));
         telemetry.addLine(String.format("  %b,   // driveReversed", driveReversed));

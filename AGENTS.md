@@ -11,7 +11,7 @@
 
 - Optimize first for helping Callam move the robot code forward safely and quickly.
 - Prefer understanding the active opmode and its live wiring over making assumptions from class names alone.
-- Treat `MainTeleOp` and `AutoOpBase` as the highest-signal entrypoints for what the robot currently does.
+- Start with `AimingTeleOp`, `SimpleTeleOp`, and the selected autonomous opmode for the team's Chip robot. Start with `SwerveTeleOp` for HWW's differential swerve.
 - Make small, behavior-aware edits unless a larger refactor is explicitly requested.
 - Do not remove or "simplify" state bridges until you confirm what cross-opmode behavior they preserve.
 
@@ -22,32 +22,26 @@
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/core/implementations/`
   Real opmodes. This is where current robot behavior is easiest to understand.
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/components/`
-  Shared building blocks above raw devices: `ActuatorComponent` and the `*AxisComponent` family (`MotorAxisComponent`, `MotorPositionAxisComponent`, `MotorVelocityAxisComponent`, `PositionAxisComponent`, `VelocityAxisComponent`).
-- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/components/mechanisms/`
-  Low-level robot mechanisms: `DriveBase`, `Turret`, `Launcher`, `Hood`, `Indexer`, `Collector`, `FeedRamp`, `FeedWheels`, `LimelightLocalizer`.
-- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/components/subsystems/`
-  Coordination layers that sit above mechanisms, especially storage and firing logic.
+  Chip's pose-based `AimController` and its yaw `Turret` mechanism.
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/hardware/`
-  Smart FTC hardware wrappers, cache management, and sensor configuration. Includes `hardware/controllers/` (PID family: `PID`, `DirectionalPID`, `VelocityPID`, `GravityPID`, `BangBangController`, `HybridController`) and `hardware/filters/` (`DataFilter`, `RollingAverage`).
+  Smart FTC hardware wrappers, cache management, and sensor configuration. Includes `hardware/controllers/` (PID family: `Turret`, `DirectionalPID`, `VelocityPID`, `GravityPID`, `BangBangController`, `HybridController`) and `hardware/filters/` (`DataFilter`, `RollingAverage`).
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/drive/`
   Drive configuration and Pedro Pathing constants.
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/vision/`
   AprilTag readers (`AprilTagReader`, `MultiAprilTagReader`) and `Detection` types used by aiming/localization.
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/utilities/`
-  Persistent storage, match-state carryover, telemetry helpers, and small support types.
+  Persistent storage, telemetry helpers, and small support types.
 - `FtcRobotController/`
   Mostly upstream FTC SDK app code. Avoid edits unless the reason is explicit.
 
 ## Primary Entry Points
 
-- `core/implementations/MainTeleOp.java`
-  The main match teleop. If a change affects driver controls, firing flow, intake/storage behavior, match-state persistence, or task-assisted teleop, start here.
-- `core/implementations/AutoOpBase.java`
-  The autonomous framework. Most autos inherit from this and build plans with `StepSpec`.
-- `core/implementations/SimpleTeleOp.java`
-  Reduced teleop used for simpler mechanism testing and fallback behavior.
-- `core/implementations/*Diagnostics*`, `ServoTester`, `MotorIdentifier`, `PotentiometerTest`
-  Utility opmodes used for calibration, diagnostics, and hardware bring-up.
+- `core/implementations/AimingTeleOp.java` and `core/implementations/SimpleTeleOp.java`
+  Chip's teleop controls. Both use the mecanum follower and support robot-centric and field-centric driving. Aiming TeleOp also runs pose-based aiming.
+- `core/ChipBase.java` and `core/implementations/{Blue,Red}{Far,SoloFar,LoadingZone}Auto.java`
+  Chip's shared hardware setup and the individual autonomous state machines. Each auto owns its paths, starting pose, alliance, and step transitions.
+- `core/implementations/SwerveTeleOp.java` and the swerve tester and calibration opmodes
+  HWW's differential swerve drive and diagnostics. Swerve TeleOp creates and drives the drivetrain directly.
 - `core/OpModeCore.java`
   The base lifecycle. It owns `Hardware`, `PersistentStorage`, telemetry setup, and the per-loop cache invalidation flow.
 - `core/TeleOpCore.java`
@@ -56,73 +50,21 @@
 ## Key Non-Obvious Contracts
 
 - `OpModeCore.frameworkTick()` invalidates hardware caches every loop through `hardware.invalidateCaches()`. Hardware wrappers depend on that refresh cycle.
-- Methods beginning with `on` in the opmode framework are hooks. The intended API convention is that hooks do **not** require a `super.on...()` call — `OpModeCore` and `TeleOpCore` deliberately route core setup through framework pre-init plumbing so subclasses never have to chain. `AutoOpBase.onInitialize` currently *violates* that convention: it runs substantive setup (alliance color, drive-base motor config, Limelight init, obelisk-assist state, telemetry plumbing) directly in the hook, so today an auto subclass that overrides it without calling `super.onInitialize()` silently strips that setup. This is a wart, not a pattern to emulate: the durable fix is to move that setup into pre-init plumbing so the super-call requirement disappears, and **do not** add new hooks that require subclasses to chain `super`. Until then, auto subclasses still must call `super.onInitialize()`. When in doubt, read the parent's hook body first.
-- `TeleOpCore` snapshots initial gamepad state through `OpModeCore`'s framework pre-init plumbing, not through subclass `super.onInitialize()` calls. TeleOp consumers should put robot-specific setup in `onInitialize()` without chaining to the parent.
+- Framework hooks normally require no `super.on...()` call. `OpModeCore` and `TeleOpCore` perform their own setup before invoking the hooks. `ChipBase` is the current exception. Its existing overrides initialize hardware and the follower in `onInitialize()` and call `follower.update()` in `onTick()`. Subclasses overriding either hook must call the corresponding parent method. Keep new framework setup in the pre-init plumbing where possible.
 - `Hardware` is now per-opmode, not global static state. Do not reintroduce the old `Hardware.init(...)` mental model.
 - Several opmodes keep subsystem references in static fields and explicitly reset them on init. That is intentional protection against stale state across FTC opmode reruns.
-- `utilities/LiveMatchTuning.java` is the only intended match-facing `@Configurable` surface. Keep it scalar-only; do not add `@Configurable` back to mechanisms, subsystems, autos, or classes with complex object fields unless the Sloth patch-application cost has been reconsidered. The one other use is `SwervePodRotationTester`, a bench opmode that exposes a single scalar (`ticksPerRadian`).
+- `utilities/LiveMatchTuning.java` is the only intended match-facing `@Configurable` surface. Keep it scalar-only; do not add `@Configurable` back to mechanisms, subsystems, autos, or classes with complex object fields unless the Sloth patch-application cost has been reconsidered. `SwervePodRotationTester` exposes a single bench scalar (`ticksPerRadian`), and Chip's `Turret` has an existing annotation.
 
 ## Active Control Surfaces
 
-- `core/implementations/MainTeleOp.java`
-  Source of truth for the current match control map, teleop task behavior, and how subsystems are actually wired together.
-- `core/implementations/AutoOpBase.java`
-  Source of truth for how autonomous initialization, firing readiness, obelisk acquisition assist, and path-step execution currently work.
-- `drive/pedroPathing/Constants.java`
-  Shared follower and drivetrain tuning that affects both teleop follower-assisted behavior and autonomous.
-- `utilities/LiveMatchTuning.java`
-  Runtime Control Hub tuning for current match-facing scalar values. Autonomous path/plan constants are code-patched rather than exposed as live configurables.
+- `drive/pedroPathing/Constants.java` holds Chip's mecanum and Pinpoint calibration and Foresight tuning. `ChipBase` builds its follower from these constants. The Pedro tuning opmode also uses this calibration.
+- `drive/pedroPathing/SwerveConstants.java` holds HWW's differential pod configuration and swerve calibration. Swerve TeleOp and the swerve diagnostics use its pod factories.
+- `utilities/LiveMatchTuning.java` is the match-facing scalar tuning surface. Autonomous path and plan constants are code-patched.
 
-## State Machines And Coordinators
+## Chip Hardware And Auto Wiring
 
-- `components/subsystems/FireControlSystem.java`
-  Firing/aiming coordinator. Key fields: `runLauncher`, `fallbackVelocity`, `allianceColor`, `depotAutoAimEnabled`, `firing`, and static `bearingToDepot`.
-  State enum: `SEEKING`, `READYING`, `READY`.
-  Hidden behavior: it falls back to depot-pose aiming when tags are not visible if configured to do so.
-- `components/subsystems/VolleyFireStorageManager.java`
-  Queue-driven storage/fire coordinator used by current teleop and auto flow.
-  State enum: `RESTING`, `BUMPING`, `PREPARING_TO_FIRE`, `ENGAGING_FEEDER`, `FIRING`, `ENDING_FIRING`.
-  Task enum: `READY_FOR_COLLECTION`, bump tasks, and fire-pattern tasks.
-  Hidden behavior: it owns jam-correction timing and coordinates `Indexer`, `FeedSystem`, `IndexerStorage`, and `FireControlSystem`.
-- `components/subsystems/IndexerStorage.java`
-  Logical model of the three storage slots.
-  Important fields/concepts: slot content, front-slot freshness, front sensor distance gating, and color classification.
-  Hidden behavior: slot identity is tied to the physical indexer position through `Indexer.getNormalizedCurrentIndex()`, so content appears to "move" as the indexer rotates.
-- `core/teleoptasks/tasks/FarFiringTask.java`
-  Teleop automation state machine for driving to base, waiting for storage fill, returning, and draining shots.
-  It depends on `TeleOpTaskContext` suppliers rather than concrete subsystem ownership.
-- `core/implementations/AutoOpBase.java`
-  Autonomous plan runner. `StepSpec`, `TimeoutAction`, `PlanResult`, and `AutoContext` together form a mini state-machine framework for autos.
-
-## Implicit Bridges Between Systems
-
-- `utilities/MatchStateStore.java`
-  Persists alliance, pose, indexer slot content, index targets, turret state, and the latest seen obelisk metadata across opmodes.
-  This is a real bridge between runs, not just debugging support.
-- `utilities/PersistentStorage.java`
-  Backing store for `MatchStateStore` and persisted color tuning. Data survives opmode switches and app restarts through Android `SharedPreferences`.
-- Legacy color-tuning paths around `hardware/ColorMatchConfig.java`
-  Callam considers this file obsolete. It may still be referenced by wrappers or old tuning opmodes, but agents should not assume it is the current source of truth for live robot behavior unless the active opmode clearly depends on it.
-- `core/teleoptasks/TeleOpTaskContext.java`
-  Bridges `MainTeleOp` to task automation through suppliers for drive, storage, FCS, alliance, and runtime.
-  Tasks may start successfully even when some suppliers later return `null`, so check both the context and the consumer task logic.
-- `components/mechanisms/DriveBase.java`
-  Has two operating modes: follower-backed when `startFollower` is `true`, and simpler mecanum/localizer mode when `false`.
-  That changes which Pedro objects exist and which movement APIs are meaningful.
-
-## Main TeleOp Wiring
-
-- `MainTeleOp` is currently the place where these pieces meet:
-  `DriveBase` + Pedro follower, `FeedSystem`, `Indexer`, `Collector`, `IndexerStorage`, `VolleyFireStorageManager`, `FireControlSystem`, `SmartLimelight3A`, `MatchStateStore`, and `TeleOpTaskManager`.
-- `MainTeleOp` also owns:
-  startup snapshot loading, periodic match-state saving, alliance toggling, maintenance-mode controls, and manual fallback controls when tasks are inactive.
-- If behavior seems inconsistent with a subsystem's standalone implementation, trust the live wiring in `MainTeleOp` first.
-
-## Auto Wiring
-
-- `AutoOpBase` owns subsystem setup for autos, plan execution, autonomous alliance selection, and periodic state persistence.
-- Child autos typically override `getAutonomousAllianceColor()` and `buildPlan()`.
-- Obelisk acquisition assist is handled inside `AutoOpBase`, not inside individual auto plans, unless a child opmode deliberately overrides around it.
+- `ChipBase` initializes the follower, pitch servo, yaw motor, `Turret`, and `AimController` and sets the initial pose and alliance. `AimController` uses the follower pose and alliance for turret and pitch targets in Aiming TeleOp and the autos.
+- Each Chip autonomous toggles its own state from follower progress and any delays specified in that opmode. Read the selected auto before changing its setup or paths.
 
 ## Hardware And Sensor Notes
 
@@ -132,10 +74,6 @@
   Often expose both cached state and raw-device access patterns. Read the wrapper before assuming raw FTC device semantics still apply.
 - `hardware/ColorMatchConfig.java`
   Treat as legacy/obsolete unless the task is specifically about maintaining or removing old color-tuning paths.
-- `frontColorSensor`
-  Current storage logic expects distance sensing, not just color sensing.
-- `SmartLimelight3A`
-  AprilTag visibility affects both aiming and persisted match-state context.
 
 ## How To Read This Code Effectively
 
@@ -156,7 +94,7 @@ Failure modes attested by this codebase's commit history. Listed for use as a pr
 - **State-machine cleanup omissions.** Multiple historical fixes have addressed transitions that didn't clear `activeTask`, didn't reset slot content after firing, missed a `break` in a switch arm, missed an `else` for a load-task with nothing to load, or chose a state without triggering its required side effect (e.g., `feeder.trigger()` skipped on a direct-load path). When editing `VolleyFireStorageManager`, `FireControlSystem`, or the auto plan runner, audit each transition for cleanup completeness and side-effect symmetry. Witnessed: `f1062cf`, `990855a`.
 - **Hardware cache correctness.** Recent fixes around the per-loop cache flow have addressed: ordering between Lynx bulk cache clear and per-device cache invalidation, treating `null` as "uncached" (it's a valid cached value, not a sentinel for empty), HSV/distance recomputed per call so two same-loop reads disagreed, and caches not being invalidated when their inputs (filter config) changed. When editing `Hardware`, `HardwareCache`, or any `Smart*` sensor wrapper, verify all four. Witnessed: `1b568fe`, `1225776`.
 - **Refactors that silently drop real-world calibration.** A hotfix was needed to re-add a potentiometer offset that a refactor had removed from the device-construction signature. The compiler does not catch this; only the robot does. When changing constructors, factory methods, or builders for hardware wrappers, audit every call site for parameters that carry calibration values. Witnessed: `a667b9a`.
-- **Auto subclasses overriding `onInitialize` without `super`.** `AutoOpBase.onInitialize` runs substantive setup (alliance, drive config, limelight, telemetry, obelisk state) directly in the hook, so an auto subclass that overrides it without chaining `super.onInitialize()` silently strips that setup. Six subclasses had this bug; a fix added `super.onInitialize()` to all of them (`ff42101`). The lesson is **not** "remember to call super" — it's that this hook shouldn't require super at all (it's the lone deviation from the repo's hook convention; see *Key Non-Obvious Contracts*). Until `AutoOpBase` is refactored, audit auto subclasses for the missing super call, and don't add new super-requiring hooks.
+- **Auto subclasses overriding `onInitialize` without `super`.** `AutoOpBase.onInitialize` runs substantive setup (alliance, drive config, limelight, telemetry, obelisk state) directly in the hook, so an auto subclass that overrides it without chaining `super.onInitialize()` silently strips that setup. Six subclasses had this bug; a fix added `super.onInitialize()` to all of them (`ff42101`). The lesson is **not** "remember to call super" — it's that this hook shouldn't require super at all (it's the lone deviation from the repo's hook convention; see *Key Non-Obvious Contracts*). Apply the same check to the current hierarchy and audit the current `ChipBase` subclasses for missing parent calls, and don't add new super-requiring hooks.
 
 A separate framework convention worth preserving even though no historical fix attests it directly:
 
@@ -176,9 +114,9 @@ A separate framework convention worth preserving even though no historical fix a
 - `targetSdk` is intentionally pinned to 28 with `//noinspection ExpiredTargetSdkVersion` in `build.common.gradle`. Do not "fix" it — it is a deliberate FTC SDK requirement.
 - `versionCode` and `versionName` are scraped at configure time from `FtcRobotController/src/main/AndroidManifest.xml` by a regex in `build.common.gradle`. Bump version fields there, not in TeamCode.
 - FTC SDK pinned to `org.firstinspires.ftc:* @ 11.2.0` across RobotCore, Hardware, FtcCommon, Vision, Inspection, Blocks, OnBotJava, RobotServer.
-- Pedro Pathing pinned to `com.pedropathing:revhub:3.0.2`. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
+- Pedro Pathing pinned to `com.pedropathing:revhub:3.0.2` with `com.pedropathing:tuning:1.0.0` for Chip's tuning opmode. Pedro 3.x is a major API redesign; use its current quickstart and docs when changing paths or drivetrain code.
 - Hot reload comes from Sloth: `dev.frozenmilk.sinister:Sloth:0.2.4` plus the `dev.frozenmilk:Load:0.2.4` Gradle plugin, applied in `TeamCode/build.gradle` as `dev.frozenmilk.sinister.sloth.load` (after `build.common.gradle`). It adds the `deploySloth` and `removeSlothRemote` tasks.
-- Shared IntelliJ run configs live in `.run/` and are committed: `Sloth Load` runs `:TeamCode:deploySloth`, and `TeamCode` runs `removeSlothRemote` before the normal install. `settings.gradle` pins `rootProject.name = 'HWW'` so the `TeamCode` config's module reference (`HWW.TeamCode`) resolves in any clone directory; do not rename it without updating `.run/TeamCode.run.xml`.
+- Shared IntelliJ run configs live in `.run/` and are committed: `Deploy Sloth` runs `:TeamCode:deploySloth`, and `TeamCode` runs `removeSlothRemote` before the normal install. `settings.gradle` pins `rootProject.name = 'HWW'` so the `TeamCode` config's module reference (`HWW.TeamCode`) resolves in any clone directory; do not rename it without updating `.run/TeamCode.run.xml`.
 - `@Configurable` runtime tuning and dashboard telemetry come from the Sloth build of Panels: `com.bylazar.sloth:fullpanels:0.2.4+1.0.12`. `OpModeCore` mirrors `PrettyTelemetry` to Panels; the swerve tester opmodes publish graphable values through `PanelsTelemetry` directly.
 - Non-default Maven sources: `https://maven.brott.dev/` (Road Runner) and `https://repo.dairy.foundation/releases` + `/snapshots` (Sloth and the Sloth build of Panels). Pedro 3.x artifacts publish to Maven Central.
 - The `sugar` branch carries the alternative Sugar Snap/Glaze toolchain (`io.github.callamj.sugar`) in place of Sloth + Panels, including `HotOpMode`-based versions of the swerve tester opmodes.

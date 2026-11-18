@@ -38,6 +38,7 @@ public class SmartGamepad {
         this.start = gamepad.start;
         this.options = gamepad.options;
         this.guide = gamepad.guide;
+        this.back = gamepad.back;
         this.share = gamepad.share;
 
         this.touchpad = gamepad.touchpad;
@@ -53,7 +54,7 @@ public class SmartGamepad {
     public final boolean leftBumper, rightBumper;
     public final boolean dpadLeft, dpadRight, dpadUp, dpadDown;
     public final boolean leftStickButton, rightStickButton;
-    public final boolean start, options, guide, share;
+    public final boolean start, options, guide, back, share;
     public final boolean touchpad, touchpadFinger1, touchpadFinger2;
 
     public double leftTrigger, rightTrigger;
@@ -121,6 +122,10 @@ public class SmartGamepad {
 
     public boolean guidePressed(){
         return guide && !baseLast.guide;
+    }
+
+    public boolean backPressed() {
+        return back && !baseLast.back;
     }
 
     public boolean crossPressed(){
@@ -197,6 +202,10 @@ public class SmartGamepad {
 
     public boolean guideReleased(){
         return !guide && baseLast.guide;
+    }
+
+    public boolean backReleased() {
+        return !back && baseLast.back;
     }
 
     public boolean crossReleased(){

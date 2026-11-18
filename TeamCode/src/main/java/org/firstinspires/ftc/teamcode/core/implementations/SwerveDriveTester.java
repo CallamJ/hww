@@ -6,7 +6,7 @@ import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.revhub.drivetrains.Swerve;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.drive.pedroPathing.SwerveConstants;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
 
 /**
@@ -29,11 +29,11 @@ public class SwerveDriveTester extends OpMode {
 
     @Override
     public void init() {
-        leftPod = Constants.leftPod(hardwareMap);
-        rightPod = Constants.rightPod(hardwareMap);
+        leftPod = SwerveConstants.leftPod(hardwareMap);
+        rightPod = SwerveConstants.rightPod(hardwareMap);
         leftPod.resetEncoders();
         rightPod.resetEncoders();
-        swerve = new Swerve(hardwareMap, Constants.swerveConfig, leftPod, rightPod);
+        swerve = new Swerve(hardwareMap, SwerveConstants.swerveConfig, leftPod, rightPod);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
     }
 

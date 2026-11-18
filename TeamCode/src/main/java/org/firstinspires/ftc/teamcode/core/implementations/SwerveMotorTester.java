@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
 import org.firstinspires.ftc.teamcode.core.TeleOpCore;
-import org.firstinspires.ftc.teamcode.drive.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.drive.pedroPathing.SwerveConstants;
 import org.firstinspires.ftc.teamcode.drive.pedroPathing.DifferentialPod;
 import org.firstinspires.ftc.teamcode.hardware.SmartMotor;
 
@@ -16,8 +16,8 @@ public class SwerveMotorTester extends TeleOpCore {
 
     @Override
     protected void onInitialize() {
-        leftPod = Constants.leftPod(hardwareMap);
-        rightPod = Constants.rightPod(hardwareMap);
+        leftPod = SwerveConstants.leftPod(hardwareMap);
+        rightPod = SwerveConstants.rightPod(hardwareMap);
 
         LLMotor = hardware.getMotor("leftPodLeftMotor");
         LRMotor = hardware.getMotor("leftPodRightMotor");

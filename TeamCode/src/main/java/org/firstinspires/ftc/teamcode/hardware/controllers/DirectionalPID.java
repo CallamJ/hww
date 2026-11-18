@@ -11,6 +11,11 @@ public class DirectionalPID extends PID implements PositionControlAlgorithm {
 	protected double rDResult;
 	protected double rFResult;
 
+	@Override
+	public boolean isBusy() {
+		return super.isBusy();
+	}
+
 	protected DirectionalPID(
 			DoubleSupplier kPForward, DoubleSupplier kIForward, DoubleSupplier kDForward, DoubleSupplier kFForward,
 			DoubleSupplier kPReverse, DoubleSupplier kIReverse, DoubleSupplier kDReverse, DoubleSupplier kFReverse,

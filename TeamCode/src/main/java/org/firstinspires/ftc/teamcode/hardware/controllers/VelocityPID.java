@@ -16,6 +16,11 @@ public class VelocityPID extends BasePIDController implements VelocityControlAlg
     private boolean firstCalculation = true;
     private final com.qualcomm.robotcore.util.ElapsedTime velocityTimer = new com.qualcomm.robotcore.util.ElapsedTime();
 
+    @Override
+    public boolean isBusy() {
+        return super.isBusy();
+    }
+
     protected VelocityPID(DoubleSupplier kP, DoubleSupplier kI, DoubleSupplier kD, DoubleSupplier kF, double tolerance) {
         super(tolerance);
         this.kP = kP;

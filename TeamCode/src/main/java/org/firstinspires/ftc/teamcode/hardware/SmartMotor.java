@@ -447,11 +447,11 @@ public class SmartMotor extends Device implements DcMotorEx, Caching, WrappedDev
 
     /**
      * {@link #setPIDFCoefficients} is a superset enhancement to {@link #setPIDCoefficients}. In addition
-     * to the proportional, integral, and derivative coefficients previously supported, a feed-forward
+     * to the proportional, integral, and derivative coefficients previously supported, a start-forward
      * coefficient may also be specified. Further, a selection of motor control algorithms is offered:
      * the originally-shipped Legacy PID algorithm, and a PIDF algorithm which avails itself of the
-     * feed-forward coefficient. Note that the feed-forward coefficient is not used by the Legacy PID
-     * algorithm; thus, the feed-forward coefficient must be indicated as zero if the Legacy PID
+     * start-forward coefficient. Note that the start-forward coefficient is not used by the Legacy PID
+     * algorithm; thus, the start-forward coefficient must be indicated as zero if the Legacy PID
      * algorithm is used. Also: the internal implementation of these algorithms may be different: it
      * is not the case that the use of PIDF with the F term as zero necessarily exhibits exactly the
      * same behavior as the use of the LegacyPID algorithm, though in practice they will be quite close.
@@ -591,5 +591,14 @@ public class SmartMotor extends Device implements DcMotorEx, Caching, WrappedDev
     @Override
     public boolean isOverCurrent() {
         return motor.isOverCurrent();
+    }
+
+    /**
+     * Resets the encoder position of this motor to zero.
+     */
+    public void resetEncoder() {
+        RunMode initial = motor.getMode();
+        motor.setMode(RunMode.STOP_AND_RESET_ENCODER);
+        motor.setMode(initial);
     }
 }
