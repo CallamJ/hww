@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.core.ChipBase;
 import org.firstinspires.ftc.teamcode.core.SmartGamepad;
 import org.firstinspires.ftc.teamcode.utilities.AllianceColor;
 
-@Autonomous(name = "RED Far")
+@Autonomous(name = "RED Far - TEAM")
 public class RedFarAuto extends ChipBase {
     Pose step2 = new Pose(-48, 50, 0);
 
