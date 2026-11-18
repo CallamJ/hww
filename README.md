@@ -1,6 +1,6 @@
-# Team 18650 FTC-SDK
+# Team 32473 FTC-SDK
 
-This is **Team 18650's fork** of the official [FtcRobotController](https://github.com/FIRST-Tech-Challenge/FtcRobotController) SDK.
+This is **Team 32473's fork** of the official [FtcRobotController](https://github.com/FIRST-Tech-Challenge/FtcRobotController) SDK.
 
 ## For Team Members
 
@@ -44,4 +44,4 @@ This project contains a large selection of Sample OpModes (robot code examples) 
 
 ## About
 
-FTC 18650 is part of [Bennington Area Robotics](https://github.com/bennington-area-robotics), based in Bennington, Vermont.
+FTC 32473 Bennington Bolts and Biscuits is part of [Bennington Area Robotics](https://robotics.bamvt.com/), based in Bennington, Vermont. Our other code repositories are on [GitHub](https://github.com/bennington-area-robotics).
